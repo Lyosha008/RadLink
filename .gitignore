@@ -1,0 +1,17 @@
+# Скомпилированные файлы и кэш
+.gradle/
+build/
+bin/
+run/
+run-data/
+
+# Настройки IDE (IntelliJ IDEA)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Логи и Временные файлы
+*.log
+.DS_Store
