@@ -1,0 +1,21 @@
+modLoader = "javafml"
+loaderVersion = "[48,)"
+license = "All Rights Reserved"
+[[mods]]
+modId = "radlink"
+version = "1.0"
+displayName = "RadLink"
+authors = "Lyohsa008"
+description = ''''''
+[[dependencies."radlink"]]
+modId = "forge"
+mandatory = true
+versionRange = "[48,)"
+ordering = "NONE"
+side = "BOTH"
+[[dependencies."radlink"]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.2,1.21)"
+ordering = "NONE"
+side = "BOTH"

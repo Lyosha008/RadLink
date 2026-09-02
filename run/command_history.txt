@@ -1,0 +1,28 @@
+/gamemode survival
+/give Dev radlink:transmitter
+/time set day
+/give Dev minecraft:crying_obsidian
+/give Dev minecraft:lodestone
+/summon minecraft:lightning_bolt
+/summon minecraft:lightning_bolt ~ ~-2 ~
+/summon minecraft:lightning_bolt ~ ~-3 ~
+/summon minecraft:lightning_bolt ~ ~ ~
+/summon minecraft:lightning_bolt 18.34 75.00 16.34
+/summon minecraft:lightning_bolt 18.34 76. 16.34
+/summon minecraft:lightning_bolt 18.34 75. 16.34
+/summon minecraft:lightning_bolt 18 75 16
+/summon minecraft:lightning_bolt 18 75.5 16
+/weather thunder
+/time set midnight
+/weather thunder
+/summon minecraft:lightning_bolt
+/weather thunder
+/effect give Dev radlink:antidote_boost
+/effect give Dev radlink:radiation_sickness
+/effect give Dev radlink:antidote_boost
+/effect give Dev minecraft:strength
+/give Dev radlink:weather_test_item
+/give Dev radlink:weather_test_item 0
+/give Dev radlink:weather_test_item 1
+/weather rain
+/weather clear

@@ -1,0 +1,5 @@
+
+["General Settings"]
+	#Enable custom creative tab for mod items and blocks
+	isCreativeTab = false
+

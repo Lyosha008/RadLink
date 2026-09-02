@@ -1,0 +1,10 @@
+[
+  {
+    "id": "transmitter",
+    "name": "transmitter",
+    "maxStackSize": 64,
+    "hardness": 3.5,
+    "resistance": 6.0,
+    "directional": true
+  }
+]

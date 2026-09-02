@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "radlink:block/transmitter" },
+    "facing=south": { "model": "radlink:block/transmitter", "y": 180 },
+    "facing=west":  { "model": "radlink:block/transmitter", "y": 270 },
+    "facing=east":  { "model": "radlink:block/transmitter", "y": 90 }
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "respirator",
+    "name": "respirator",
+    "maxStackSize": 1,
+    "slot": "head",
+    "material": "chainmail",
+    "durability": 800,
+    "texture": "radlink:item/respirator",
+    "lore": [
+      {
+        "text": [
+          {"green": "Защита от токсинов"},
+          {"white": "\n"},
+          {"italic": "true"}
+        ]
+      },
+      {
+        "text": [
+          {"red": "Низкий уровень защиты"},
+          {"italic": "false"}
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,96 @@
+[
+  {
+    "id": "weather_test_item",
+    "name": "weather_test_item",
+    "maxStackSize": 1,
+    "trigger": "right_click",
+    "if": {
+      "weather": "rain",
+      "time_check": {
+        "ago": "second",
+        "time": 100
+      }
+    },
+    "then": [
+      {
+        "say": { "text": "Дождь идет уже больше 100 секунд!" }
+      }
+    ]
+  },
+  {
+    "id": "test_item",
+    "name": "test_item",
+    "maxStackSize": 1,
+    "trigger": "right_click",
+    "if": {
+      "calc": {
+        "expression": "${global_atmosphere} / 2", ">=": 100
+      }
+    },
+    "then": [
+      {
+        "explosion": {
+          "radius": 5.0,
+          "fire": true
+        }
+      },
+      {
+        "run":[
+          {
+            "command": "title @s title {\"text\":\"Атака!\",\"color\":\"red\"}"
+          },
+          {
+            "command": "give @s minecraft:diamond 1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "atmosphere_checker",
+    "name": "atmosphere_checker",
+    "maxStackSize": 1,
+    "trigger": "right_click",
+    "then": [
+      {
+        "If": {"entity": { "==": "player" }},
+        "Then": [
+          {
+            "summon": {
+            "type": "minecraft:zombie",
+            "count": 1
+            }
+          },
+          { "damage": 5.0 },
+          {
+            "effect": {
+              "id": "regeneration",
+              "duration": 100,
+              "amplifier": 1
+            }
+          },
+          { "say": { "text": "Atmosphere: ${global_atmosphere}"}},
+          {
+            "set": [
+              {
+                "mode": [
+                  {"mode_type": "fill"},
+                  {"coordinates_1": [{"~":"-1"},{"~": "-1"}, {"~":"-1"}]},
+                  {"coordinates_2": [{"~": "1"},{"~": "-1"}, {"~": "1"}]}
+                ],
+                "block": "diamond_block",
+                "tests": [
+                  {
+                    "isAir": false,
+                    "type": "destroy",
+                    "filter": "white_wool"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

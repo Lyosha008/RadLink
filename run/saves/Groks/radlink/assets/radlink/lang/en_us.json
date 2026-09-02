@@ -1,0 +1,8 @@
+{
+  "item.radlink.atmosphere_checker": "Atmosphere pollution level meter",
+  "item.radlink.respirator": "Respirator",
+  "block.radlink.transmitter": "Transmitter",
+  "item.radlink.transmitter": "Transmitter",
+  "effect.radlink.antidote_boost": "Antidote boost",
+  "effect.radlink.radiation_sickness": "Radiation sickness"
+}

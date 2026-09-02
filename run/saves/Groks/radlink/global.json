@@ -1,0 +1,133 @@
+[
+  {
+    "if": {
+      "block": { "==": "minecraft:furnace" },
+      "who": "block",
+      "lit": true
+    },
+    "then": [
+      { "add": { "${heat}": 1 } },
+      {
+        "If": { "var": "${heat}", ">": 100 },
+        "Then": [
+          {
+            "particle": {
+              "type": "minecraft:campfire_cosy_smoke",
+              "count": 20,
+              "speed": 0.1,
+              "offset_x": 0.5,
+              "offset_y": 1.0,
+              "offset_z": 0.5
+            }
+          },
+          { "add": { "${global_atmosphere}": 1 } }
+        ]
+      }
+    ]
+  },
+  {
+    "if": {
+      "block": { "==": "minecraft:furnace" },
+      "who": "block",
+      "lit": false
+    },
+    "then": [
+      {
+        "If": { "var": "${heat}", ">": 0 },
+        "Then": [
+          { "add": { "${heat}": -1 } }
+        ]
+      }
+    ]
+  },
+  {
+    "if": {
+      "who": "entity",
+      "If": {
+        "entity": { "==": "player" },
+        "query": { "global_atmosphere": { ">": 100 } },
+        "timeCycles": { "now": "isNewDay" }
+      }
+    },
+    "then": [
+      {
+        "If": { "var": "${entity_disease_progress}", "==": 0 },
+        "Then": [
+          { "set": { "${entity_disease_progress}": 1 } }
+        ]
+      },
+      {
+        "case": [
+          {
+            "If": { "var": "${entity_disease_progress}", ">=": 1, "<=": 5 },
+            "Then": [
+              { "set": { "${entity_chance_disease}": 0.1 } }
+            ]
+          },
+          {
+            "If": { "var": "${entity_disease_progress}", ">=": 5, "<=": 25 },
+            "Then": [
+              { "set": { "${entity_chance_disease}": 0.25 } }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "if": {
+      "super": true,
+      "who": "entity",
+      "If": {
+        "entity": { "==": "lightning_bolt" },
+        "block": {
+          "coordinates_1": ["~", { "~": "-2" }, "~"],
+          "this": "white_wool"
+        }
+      }
+    },
+    "then": [
+      {
+        "set": [
+          {
+            "mode": [
+              { "mode_type": "set_block" },
+              { "coordinates_1": ["~", { "~": "-2" }, "~"] }
+            ],
+            "block": "diamond_block",
+            "tests": [
+              {
+                "isAir": false,
+                "type": "replace",
+                "filter": "white_wool"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "if": {
+      "who": "entity",
+      "If": {
+        "entity": { "==": "player" },
+        "query": { "entity_disease_progress": { ">": 0 } },
+        "timeCycles": { "now": "isNewDay" }
+      }
+    },
+    "then": [
+      {
+        "If": {
+          "query": [
+            { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+            { "<=": "${entity_chance_disease}" }
+          ]
+        },
+        "Then": [
+          { "add": { "${entity_disease_progress}": 1 } }
+        ]
+      }
+    ]
+  }
+]

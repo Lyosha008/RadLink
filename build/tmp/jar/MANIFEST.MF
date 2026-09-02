@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Specification-Title: radlink
+Specification-Vendor: Lyohsa008
+Specification-Version: 1
+Implementation-Title: radlink
+Implementation-Version: 1.0
+Implementation-Vendor: Lyohsa008
+Implementation-Timestamp: 2026-09-02T10:57:33+0300
+

@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#M#",
+    "PNR",
+    "#C#"
+  ],
+  "key": {
+    "#": {
+      "item": "minecraft:note_block"
+    },
+    "N": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "C": {
+      "item": "minecraft:crying_obsidian"
+    },
+    "R": {
+      "item": "minecraft:redstone_block"
+    },
+    "P": {
+      "item": "minecraft:cut_copper"
+    },
+    "M": {
+      "item": "minecraft:lodestone"
+    }
+  },
+  "result": {
+    "item": "radlink:transmitter",
+    "count": 1
+  }
+}

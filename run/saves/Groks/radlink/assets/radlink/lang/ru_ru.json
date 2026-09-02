@@ -1,0 +1,8 @@
+{
+  "item.radlink.atmosphere_checker": "Измеритель уровня загрязнения атмосферы",
+  "item.radlink.respirator": "Респиратор",
+  "block.radlink.transmitter": "Передатчик сигнала",
+  "item.radlink.transmitter": "Передатчикусигнала",
+  "effect.radlink.antidote_boost": "Стимулятор",
+  "effect.radlink.radiation_sickness": "Лучевая болезнь"
+}

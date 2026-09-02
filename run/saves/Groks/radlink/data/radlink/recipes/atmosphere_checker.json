@@ -1,0 +1,5 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [ { "item": "minecraft:diamond" } ],
+  "result": { "item": "radlink:atmosphere_checker", "count": 1 }
+}

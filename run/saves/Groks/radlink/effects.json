@@ -1,0 +1,14 @@
+[
+  {
+    "id": "radiation_sickness",
+    "name": "Лучевая болезнь",
+    "color": "#76FF03",
+    "isBad": true
+  },
+  {
+    "id": "antidote_boost",
+    "name": "Стимулятор",
+    "color": "#00E5FF",
+    "isBad": false
+  }
+]

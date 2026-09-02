@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube_directional",
+  "textures": {
+    "particle": "radlink:block/transmitter_front",
+    "north": "radlink:block/transmitter_front",
+    "south": "radlink:block/transmitter_back",
+    "east": "radlink:block/transmitter_side",
+    "west": "radlink:block/transmitter_side",
+    "up": "radlink:block/transmitter_up",
+    "down": "radlink:block/transmitter_down"
+  }
+}
