@@ -1,4 +1,4 @@
-package org.AtomLink.radlink;
+package org.RadLink.radlink;
 
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;

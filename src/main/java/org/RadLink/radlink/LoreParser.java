@@ -1,4 +1,4 @@
-package org.AtomLink.radlink;
+package org.RadLink.radlink;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-
 import java.util.List;
 import java.util.Map;
 

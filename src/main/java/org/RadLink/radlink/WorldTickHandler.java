@@ -1,4 +1,4 @@
-package org.AtomLink.radlink;
+package org.RadLink.radlink;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;

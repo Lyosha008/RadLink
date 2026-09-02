@@ -263,7 +263,7 @@
 [02вер.2026 11:03:49.051] [Render thread/DEBUG] [net.minecraftforge.fml.javafmlmod.FMLJavaModLanguageProvider/LOADING]: Loading FMLModContainer from classloader cpw.mods.modlauncher.TransformingClassLoader@5d342959 - got cpw.mods.cl.ModuleClassLoader@40d10481
 [02вер.2026 11:03:49.052] [Render thread/DEBUG] [net.minecraftforge.fml.javafmlmod.FMLModContainer/LOADING]: Creating FMLModContainer instance for net.minecraftforge.common.ForgeMod
 [02вер.2026 11:03:49.071] [Render thread/DEBUG] [net.minecraftforge.fml.javafmlmod.FMLJavaModLanguageProvider/LOADING]: Loading FMLModContainer from classloader cpw.mods.modlauncher.TransformingClassLoader@5d342959 - got cpw.mods.cl.ModuleClassLoader@40d10481
-[02вер.2026 11:03:49.071] [Render thread/DEBUG] [net.minecraftforge.fml.javafmlmod.FMLModContainer/LOADING]: Creating FMLModContainer instance for org.AtomLink.radlink.Radlink
+[02вер.2026 11:03:49.071] [Render thread/DEBUG] [net.minecraftforge.fml.javafmlmod.FMLModContainer/LOADING]: Creating FMLModContainer instance for org.RadLink.radlink.Radlink
 [02вер.2026 11:03:49.179] [modloading-worker-0/DEBUG] [net.minecraftforge.versions.forge.ForgeVersion/CORE]: Forge Version package package net.minecraftforge.versions.forge, Forge, version 48.1 from cpw.mods.modlauncher.TransformingClassLoader@5d342959
 [02вер.2026 11:03:49.179] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.config.ConfigTracker/CONFIG]: Config file radlink-common.toml for radlink tracking
 [02вер.2026 11:03:49.179] [modloading-worker-0/DEBUG] [net.minecraftforge.versions.forge.ForgeVersion/CORE]: Found Forge version 48.1.0
@@ -275,10 +275,10 @@
 [02вер.2026 11:03:49.190] [modloading-worker-0/INFO] [net.minecraftforge.common.ForgeMod/FORGEMOD]: Forge mod loading, version 48.1.0, for MC 1.20.2 with MCP 20230921.100330
 [02вер.2026 11:03:49.198] [modloading-worker-0/INFO] [net.minecraftforge.common.MinecraftForge/FORGE]: MinecraftForge v48.1.0 Initialized
 [02вер.2026 11:03:49.297] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Attempting to inject @EventBusSubscriber classes into the eventbus for radlink
-[02вер.2026 11:03:49.307] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Auto-subscribing org.AtomLink.radlink.ItemUseHandler to FORGE
-[02вер.2026 11:03:49.322] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Auto-subscribing org.AtomLink.radlink.Radlink$WorldPackRegistration to MOD
-[02вер.2026 11:03:49.331] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Auto-subscribing org.AtomLink.radlink.WeatherTracker to FORGE
-[02вер.2026 11:03:49.339] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Auto-subscribing org.AtomLink.radlink.WorldTickHandler to FORGE
+[02вер.2026 11:03:49.307] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Auto-subscribing org.RadLink.radlink.ItemUseHandler to FORGE
+[02вер.2026 11:03:49.322] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Auto-subscribing org.RadLink.radlink.Radlink$WorldPackRegistration to MOD
+[02вер.2026 11:03:49.331] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Auto-subscribing org.RadLink.radlink.WeatherTracker to FORGE
+[02вер.2026 11:03:49.339] [modloading-worker-0/DEBUG] [net.minecraftforge.fml.javafmlmod.AutomaticEventSubscriber/LOADING]: Auto-subscribing org.RadLink.radlink.WorldTickHandler to FORGE
 [02вер.2026 11:03:49.428] [modloading-worker-0/DEBUG] [io.netty.util.internal.PlatformDependent0/]: -Dio.netty.noUnsafe: false
 [02вер.2026 11:03:49.429] [modloading-worker-0/DEBUG] [io.netty.util.internal.PlatformDependent0/]: Java version: 17
 [02вер.2026 11:03:49.432] [modloading-worker-0/DEBUG] [io.netty.util.internal.PlatformDependent0/]: sun.misc.Unsafe.theUnsafe: available

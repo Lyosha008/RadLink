@@ -1,4 +1,4 @@
-package org.AtomLink.radlink;
+package org.RadLink.radlink;
 
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;

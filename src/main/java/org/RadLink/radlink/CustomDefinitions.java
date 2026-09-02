@@ -1,4 +1,4 @@
-package org.AtomLink.radlink;
+package org.RadLink.radlink;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -6,7 +6,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Type;

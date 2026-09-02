@@ -1,4 +1,4 @@
-package org.AtomLink.radlink;
+package org.RadLink.radlink;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;

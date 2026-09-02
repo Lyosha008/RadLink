@@ -1,4 +1,4 @@
-package org.AtomLink.radlink;
+package org.RadLink.radlink;
 
 import com.google.gson.JsonArray;
 import net.minecraft.network.chat.Component;

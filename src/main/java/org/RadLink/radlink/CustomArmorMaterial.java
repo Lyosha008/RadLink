@@ -1,9 +1,8 @@
-package org.AtomLink.radlink;
+package org.RadLink.radlink;
 
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterials;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 
 public class CustomArmorMaterial implements net.minecraft.world.item.ArmorMaterial {
