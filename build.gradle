@@ -6,13 +6,13 @@ plugins {
 }
 
 modrinth {
-    token = System.getenv("MODRINTH_TOKEN") // Берёт токен из переменной окружения
-    projectId = "radlink"                   // Например: "radlink"
-    versionNumber = "1.0"                   // Версия вашего мода
-    versionType = "alpha"                   // release, beta, или alpha
-    uploadFile = jar                        // Автоматически берет собранный jar
-    gameVersions = ["1.20.2"]               // Версии игры
-    loaders = ["forge"]                     // Платформа
+    token = System.getenv("MODRINTH_TOKEN") // Токен берётся из системы
+    projectId = "radlink"
+    versionNumber = mod_version             // Автоматически берёт версию из gradle.properties
+    versionType = "release"                 // Готовый релиз (или "beta"/"alpha")
+    uploadFile = tasks.jar                  // Берёт готовый заобфусцированный jar
+    gameVersions = ["1.20.2"]
+    loaders = ["forge"]
 }
 
 group = mod_group_id
