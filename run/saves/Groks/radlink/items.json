@@ -4,13 +4,6 @@
     "name": "weather_test_item",
     "maxStackSize": 1,
     "trigger": "right_click",
-    "if": {
-      "weather": "rain",
-      "time_check": {
-        "ago": "second",
-        "time": 100
-      }
-    },
     "then": [
       {
         "say": { "text": "Дождь идет уже больше 100 секунд!" }
@@ -28,6 +21,11 @@
       }
     },
     "then": [
+      {
+        "set": {
+          "has_right_arm": 3.0
+        }
+      },
       {
         "explosion": {
           "radius": 5.0,
@@ -53,15 +51,17 @@
     "trigger": "right_click",
     "then": [
       {
-        "If": {"entity": { "==": "player" }},
+        "If": {
+          "who": "entity",
+          "entity": { "==": "player" }
+        },
         "Then": [
           {
-            "summon": {
-            "type": "minecraft:zombie",
-            "count": 1
+            "overlay": {
+              "texture": "textures/gui/pain_frame_1.png",
+              "duration": 20
             }
           },
-          { "damage": 5.0 },
           {
             "effect": {
               "id": "regeneration",

@@ -3,16 +3,28 @@ plugins {
     id 'idea'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
     id 'com.modrinth.minotaur' version '2.+'
+    id 'com.github.breadmoirai.github-release' version '2.4.1'
 }
 
 modrinth {
-    token = System.getenv("MODRINTH_TOKEN") // Токен берётся из системы
+    token = System.getenv("MODRINTH_TOKEN")
     projectId = "radlink"
-    versionNumber = mod_version             // Автоматически берёт версию из gradle.properties
-    versionType = "release"                 // Готовый релиз (или "beta"/"alpha")
-    uploadFile = tasks.jar                  // Берёт готовый заобфусцированный jar
+    versionNumber = mod_version
+    versionType = "release"
+    uploadFile = tasks.jar
     gameVersions = ["1.20.2"]
     loaders = ["forge"]
+}
+
+githubRelease {
+    token project.findProperty('githubToken') ?: System.getenv("GITHUB_TOKEN") ?: ''
+    owner "Lyosha008"
+    repo "RadLink"
+    tagName "v${mod_version}"
+    targetCommitish "main"
+    releaseName "RadLink v${mod_version}"
+    body "Релиз версии ${mod_version} мода RadLink."
+    releaseAssets tasks.jar
 }
 
 group = mod_group_id
@@ -45,10 +57,7 @@ minecraft {
         }
 
         client {}
-
-        server {
-            args '--nogui'
-        }
+        server {args '--nogui'}
 
         data {
             workingDirectory project.file('run-data')
@@ -58,10 +67,7 @@ minecraft {
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-}
+dependencies {minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"}
 
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [

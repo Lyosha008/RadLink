@@ -111,6 +111,157 @@
     "if": {
       "who": "entity",
       "If": {
+        "entity": [
+          {
+            "==": "player",
+            "died_of": "explosion"
+          }
+        ]
+      }
+    },
+    "then": [
+      {
+        "If": {
+          "query": [
+            { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+            { "<=": 0.95 }
+          ]
+        },
+        "Then": [
+          {
+            "If": { "var": "${has_arm}", "==": 2 },
+            "Then": [
+              {
+                "case": [
+                  {
+                    "If": {
+                      "query": [
+                        { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+                        { "<=": 0.50 }
+                      ]
+                    },
+                    "Then": [
+                      { "command": "tellraw @s {\"text\":\"У вас и так нет левой руки, взрыв не причинил новых увечий.\",\"color\":\"gray\"}" }
+                    ]
+                  },
+                  {
+                    "If": {
+                      "query": [
+                        { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+                        { "<=": 1.00 }
+                      ]
+                    },
+                    "Then": [
+                      { "set": { "${has_arm}": 4 } },
+                      { "command": "tellraw @s {\"text\":\"Взрыв оторвал вам последнюю оставшуюся руку!\",\"color\":\"dark_red\"}" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "If": { "var": "${has_arm}", "==": 3 },
+            "Then": [
+              {
+                "case": [
+                  {
+                    "If": {
+                      "query": [
+                        { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+                        { "<=": 0.50 }
+                      ]
+                    },
+                    "Then": [
+                      { "command": "tellraw @s {\"text\":\"У вас и так нет правой руки, взрыв не причинил новых увечий.\",\"color\":\"gray\"}" }
+                    ]
+                  },
+                  {
+                    "If": {
+                      "query": [
+                        { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+                        { "<=": 1.00 }
+                      ]
+                    },
+                    "Then": [
+                      { "set": { "${has_arm}": 4 } },
+                      { "command": "tellraw @s {\"text\":\"Взрыв оторвал вам последнюю оставшуюся руку!\",\"color\":\"dark_red\"}" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "If": { "var": "${has_arm}", "==": 4 },
+            "Then": [
+              { "command": "tellraw @s {\"text\":\"Взрыв прогремел совсем рядом, но у вас уже нет рук...\",\"color\":\"dark_gray\"}" }
+            ]
+          },
+          {
+            "If": { "var": "${has_arm}", "<": 2 },
+            "Then": [
+              {
+                "case": [
+                  {
+                    "If": {
+                      "query": [
+                        { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+                        { "<=": 0.28 }
+                      ]
+                    },
+                    "Then": [
+                      { "command": "tellraw @s {\"text\":\"Взрывом вас оглушило, но руки уцелели!\",\"color\":\"gray\"}" }
+                    ]
+                  },
+                  {
+                    "If": {
+                      "query": [
+                        { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+                        { "<=": 0.56 }
+                      ]
+                    },
+                    "Then": [
+                      { "set": { "${has_arm}": 2 } },
+                      { "command": "tellraw @s {\"text\":\"Взрывом вам оторвало левую руку!\",\"color\":\"red\"}" }
+                    ]
+                  },
+                  {
+                    "If": {
+                      "query": [
+                        { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+                        { "<=": 0.84 }
+                      ]
+                    },
+                    "Then": [
+                      { "set": { "${has_arm}": 3 } },
+                      { "command": "tellraw @s {\"text\":\"Взрывом вам оторвало правую руку!\",\"color\":\"red\"}" }
+                    ]
+                  },
+                  {
+                    "If": {
+                      "query": [
+                        { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+                        { "<=": 1.00 }
+                      ]
+                    },
+                    "Then": [
+                      { "set": { "${has_arm}": 4 } },
+                      { "command": "tellraw @s {\"text\":\"Ужасный взрыв оторвал вам обе руки!\",\"color\":\"dark_red\"}" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "if": {
+      "who": "entity",
+      "If": {
         "entity": { "==": "player" },
         "query": { "entity_disease_progress": { ">": 0 } },
         "timeCycles": { "now": "isNewDay" }
