@@ -162,8 +162,8 @@ run/radlink/servers/play_example_com/menu_background.json
 * particle — Спавн частиц:
   { "particle": { "type": "minecraft:flame", "count": 10, "speed": 0.1 } }
 
-* say / message — Сообщение в чат (поддерживает плейсхолдеры ${переменных}):
-  { "say": { "text": "Текущая атмосфера: ${global_atmosphere}" } }
+* say / message — Сообщение в чат (поддерживает плейсхолдеры \${переменных}):
+  { "say": { "text": "Текущая атмосфера: \${global_atmosphere}" } }
 
 * add / set (переменные) — Изменение или установка числовых значений:
   { "add": { "global_atmosphere": 1.0 } }
