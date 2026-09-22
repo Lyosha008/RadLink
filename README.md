@@ -1,7 +1,6 @@
 # RadLink Mod & Script Engine Documentation
-======================================================================
+=====================================
                         RADLINK SCRIPT ENGINE
-======================================================================
 
 Данный мод позволяет создавать кастомные предметы, события, блоки,
 а также полностью кастомизировать Главное Меню игры с помощью
@@ -168,37 +167,37 @@ run/radlink/servers/play_example_com/menu_background.json
 * add / set (переменные) — Изменение или установка числовых значений:
   { "add": { "global_atmosphere": 1.0 } }
 
-* set (блоки) — Установка одиночного блока или заполнение (fill) области:
+  * set (блоки) — Установка одиночного блока или заполнение (fill) области:
 
-  а) Одиночный блок (mode_type: "set_block"):
-  {
-  "set": [
-  {
-  "mode": [
-  { "mode_type": "set_block" },
-  { "coordinates_1": [{ "~": "0" }, { "~": "1" }, { "~": "0" }] }
-  ],
-  "block": "minecraft:fire"
-  }
-  ]
-  }
+    а) Одиночный блок (mode_type: "set_block"):
+    {
+    "set": [
+    {
+    "mode": [
+    { "mode_type": "set_block" },
+    { "coordinates_1": [{ "~": "0" }, { "~": "1" }, { "~": "0" } ] }
+    ],
+    "block": "minecraft:fire"
+    }
+    ]
+    }
 
-  б) Заполнение области (mode_type: "fill"):
-  {
-  "set": [
-  {
-  "mode": [
-  { "mode_type": "fill" },
-  { "coordinates_1": [{ "~": "-1" }, { "~": "-1" }, { "~": "-1" }] },
-  { "coordinates_2": [{ "~": "1" }, { "~": "-1" }, { "~": "1" }] }
-  ],
-  "block": "minecraft:diamond_block",
-  "tests": [
-  { "isAir": false, "type": "destroy", "filter": "white_wool" }
-  ]
-  }
-  ]
-  }
+    б) Заполнение области (mode_type: "fill"):
+    {
+    "set": [
+    {
+    "mode": [
+    { "mode_type": "fill" },
+    { "coordinates_1": [{ "~": "-1" }, { "~": "-1" }, { "~": "-1" }] },
+    { "coordinates_2": [{ "~": "1" }, { "~": "-1" }, { "~": "1" }] }
+    ],
+    "block": "minecraft:diamond_block",
+    "tests": [
+    { "isAir": false, "type": "destroy", "filter": "white_wool" }
+    ]
+    }
+    ]
+    }
 
 ----------------------------------------------------------------------
 7. ПЕРЕМЕННЫЕ И ПЛЕЙСХОЛДЕРЫ
