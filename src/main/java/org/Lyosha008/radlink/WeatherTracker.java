@@ -15,14 +15,8 @@ public class WeatherTracker {
         if (event.phase == TickEvent.Phase.END && event.level instanceof ServerLevel level) {
             boolean isRaining = level.isRaining();
 
-            // Если дождь только что начался
-            if (isRaining && !wasRaining) {
-                ScriptEngine.rainStartTick = level.getGameTime();
-            }
-            // Если дождь закончился — сбрасываем
-            else if (!isRaining && wasRaining) {
-                ScriptEngine.rainStartTick = -1;
-            }
+            if (isRaining && !wasRaining) {ScriptEngine.rainStartTick = level.getGameTime();}
+            else if (!isRaining && wasRaining) {ScriptEngine.rainStartTick = -1;}
 
             wasRaining = isRaining;
         }

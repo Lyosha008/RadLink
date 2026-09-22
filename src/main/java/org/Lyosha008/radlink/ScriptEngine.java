@@ -500,13 +500,6 @@ public class ScriptEngine {
             }
         }
 
-        if (thenObj.has("overlay") && entity instanceof ServerPlayer serverPlayer) {
-            JsonObject overlayObj = thenObj.getAsJsonObject("overlay");
-            String texturePath = overlayObj.get("texture").getAsString();
-            int duration = overlayObj.has("duration") ? overlayObj.get("duration").getAsInt() : 10;
-            NetworkHandler.sendToPlayer(new PacketOpenOverlay(texturePath, duration), serverPlayer);
-        }
-
         if (thenObj.has("sound") && thenObj.get("sound").isJsonObject()) {
             JsonObject soundObj = thenObj.getAsJsonObject("sound");
             String soundId = soundObj.get("id").getAsString();
@@ -913,25 +906,6 @@ public class ScriptEngine {
                 if (!evalComparison(calcValue, calcObj, level, pos, entity)) {
                     return false;
                 }
-            }
-        }
-
-        if (varCheck.has("has_slot_item") && entity instanceof ServerPlayer player) {
-            JsonObject slotQuery = varCheck.getAsJsonObject("has_slot_item");
-            String slotId = slotQuery.has("slot") ? slotQuery.get("slot").getAsString() : "";
-            String expectedItem = slotQuery.has("item") ? slotQuery.get("item").getAsString() : "";
-
-            CustomSlotManager.SlotConfig config = CustomSlotManager.REGISTERED_SLOTS.get(slotId);
-            if (config != null) {
-                var handler = CustomSlotManager.getPlayerHandler(player);
-                net.minecraft.world.item.ItemStack stackInSlot = handler.getStackInSlot(0);
-                ResourceLocation currentItem = ForgeRegistries.ITEMS.getKey(stackInSlot.getItem());
-
-                if (currentItem == null || !currentItem.toString().equals(expectedItem)) {
-                    return false;
-                }
-            } else {
-                return false;
             }
         }
 
