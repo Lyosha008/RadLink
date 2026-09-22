@@ -19,7 +19,7 @@ run/saves/<Имя_Мира>/radlink/
 Б) ДЛЯ СЕРВЕРОВ (Фон меню и кнопки под конкретный IP):
 run/radlink/servers/<IP_Сервера_без_точек>/
 
-Пример для play.example.com:
+Пример для play.example.com :
 run/radlink/servers/play_example_com/menu_background.json
 
 ├── assets/              <-- папка кастомных ресурсов и текстур
