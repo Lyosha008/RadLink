@@ -31,7 +31,6 @@ import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.registries.DeferredRegister;
@@ -93,9 +92,8 @@ public class Radlink {
         CREATIVE_MODE_TABS.register(modEventBus);
         MOB_EFFECTS.register(modEventBus);
 
-        modEventBus.addListener(this::setup);
-
         MinecraftForge.EVENT_BUS.register(new WorldTickHandler());
+
         MinecraftForge.EVENT_BUS.addListener((BlockEvent.BreakEvent event) -> {
             if (!event.getLevel().isClientSide() && event.getLevel() instanceof ServerLevel level) {
                 ScriptEngine.clearBlockVariables(level, event.getPos());
@@ -156,13 +154,6 @@ public class Radlink {
 
             MOB_EFFECTS.register(effectId, () -> new CustomMobEffect(category, finalColor));
         }
-    }
-
-    private void setup(final FMLCommonSetupEvent event) {
-        event.enqueueWork(() -> {
-            CustomSlotManager.REGISTERED_SLOTS.put("accessory", new CustomSlotManager.SlotConfig("accessory", 0));
-            NetworkHandler.register();
-        });
     }
 
     public static void saveWorldVariables(Map<String, Object> vars) {

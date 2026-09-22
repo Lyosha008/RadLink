@@ -124,7 +124,7 @@
         "If": {
           "query": [
             { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
-            { "<=": 0.95 }
+            { "<=": 0.05 }
           ]
         },
         "Then": [

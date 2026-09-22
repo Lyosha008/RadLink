@@ -90,6 +90,7 @@
     </inspection_tool>
     <inspection_tool class="EmptyTryBlock" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="EndlessStream" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="EnhancedSwitchBackwardMigration" enabled="false" level="INFORMATION" enabled_by_default="false" />
     <inspection_tool class="EnhancedSwitchMigration" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="EnumSwitchStatementWhichMissesCases" enabled="false" level="INFORMATION" enabled_by_default="false">
       <option name="ignoreSwitchStatementsWithDefault" value="true" />
@@ -154,10 +155,12 @@
     <inspection_tool class="Java8ListSort" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="Java8MapApi" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="Java8MapForEach" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="Java9CollectionFactory" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="Java9RedundantRequiresStatement" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="JavaExistingMethodCanBeUsed" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="JavaModuleDefinition" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="JavaPrintToLogpoint" enabled="false" level="DEBUGGER_SUGGESTION" enabled_by_default="false" />
+    <inspection_tool class="JavaRequiresAutoModule" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="JavacQuirks" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="JoinDeclarationAndAssignmentJava" enabled="false" level="INFORMATION" enabled_by_default="false" />
     <inspection_tool class="KotlinPrintToLogpoint" enabled="false" level="DEBUGGER_SUGGESTION" enabled_by_default="false" />
@@ -306,6 +309,7 @@
     <inspection_tool class="RegExpUnexpectedAnchor" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="RegExpUnnecessaryNonCapturingGroup" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ReplaceAllDot" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="ReplaceNullCheck" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ReplaceOnLiteralHasNoEffect" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ReturnFromFinallyBlock" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ReturnSeparatedFromComputation" enabled="false" level="INFORMATION" enabled_by_default="false" />
@@ -378,6 +382,8 @@
     <inspection_tool class="SynchronizeOnValueBasedClass" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="SystemGetProperty" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="SystemOutErr" enabled="false" level="INFORMATION" enabled_by_default="false" />
+    <inspection_tool class="TextBlockBackwardMigration" enabled="false" level="INFORMATION" enabled_by_default="false" />
+    <inspection_tool class="TextBlockMigration" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="TextLabelInSwitchStatement" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ThreadRun" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ThrowFromFinallyBlock" enabled="false" level="WARNING" enabled_by_default="false" />

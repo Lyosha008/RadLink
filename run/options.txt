@@ -10,7 +10,7 @@ entityShadows:false
 forceUnicodeFont:false
 discrete_mouse_scroll:false
 invertYMouse:false
-realmsNotifications:true
+realmsNotifications:false
 reducedDebugInfo:false
 showSubtitles:false
 directionalAudio:false
@@ -73,7 +73,7 @@ tutorialStep:none
 mouseWheelSensitivity:1.0
 rawMouseInput:true
 glDebugVerbosity:1
-skipMultiplayerWarning:false
+skipMultiplayerWarning:true
 skipRealms32bitWarning:false
 hideMatchedNames:true
 joinedFirstServer:true

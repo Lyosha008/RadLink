@@ -19,3 +19,5 @@
 /summon minecraft:creeper
 /give Dev radlink:atmosphere_checker
 /tag @p add active_slots
+/time set day
+/summon minecraft:creeper
