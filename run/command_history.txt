@@ -21,3 +21,5 @@
 /tag @p add active_slots
 /time set day
 /summon minecraft:creeper
+/give Dev radlink:atmosphere_checker
+/setblock ~ ~-5 ~ stone

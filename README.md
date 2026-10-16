@@ -136,6 +136,11 @@ The case of characters is crucial when creating JSON scripts!
 * `"lit": true | false` — checking the state of the block (lit/unlit).
 * `"query": { "global_atmosphere": { ">=": 10 } }` — checking the values of variables.
 * `"timeCycles": { "now": "isNewDay" }` — checking the occurrence of a new day.
+*
+* If query seems too simple for you, you can use calc with advanced functions such as multiplication, division, addition, subtraction, exponentiation, etc.:
+  ```json
+  { "calc": { "global_atmosphere": { ">=": { "multiply": [5, 2] } } } }
+  ```
 
 ---
 
@@ -160,6 +165,11 @@ The case of characters is crucial when creating JSON scripts!
   ```json
   { "effect": { "id": "minecraft:regeneration", "duration": 100, "amplifier": 1 } }
   ```
+  
+* **command** — Executing a command:
+  ```json
+  { "command": "give @s minecraft:diamond 1" }
+  ```
 
 * **sound** — Playing a sound:
   ```json
@@ -183,7 +193,7 @@ The case of characters is crucial when creating JSON scripts!
 
 * **set (blocks)** — Setting a single block or filling (fill) an area:
 
-  *а) Single block (`mode_type: "set_block"`):*
+  *A) Single block (`mode_type: "set_block"`):*
   ```json
   {
       "set": [
@@ -198,7 +208,7 @@ The case of characters is crucial when creating JSON scripts!
   }
   ```
 
-  *б) Filling the area (`mode_type: "fill"`):*
+  *B) Filling the area (`mode_type: "fill"`):*
   ```json
   {
       "set": [
@@ -214,6 +224,34 @@ The case of characters is crucial when creating JSON scripts!
               ]
           }
       ]
+  }
+  ```
+  
+*  **tp (entity)** — Teleporting an entity to specific coordinates:
+
+  *A) Teleporting to coordinates:*
+  ```json
+  { 
+      "tp": {
+          "mode": [
+              { "mode_type": "teleport" },
+              { "coordinates": [{ "~": "0" }, { "~": "1" }, { "~": "0" }] }
+              ]
+          }
+  }
+  ```
+
+  *B) Teleporting to coordinates and also returns back after a time that you specify in ticks (1 tick = 1/20 of a second):*
+  ```json
+  {
+    "tp": {
+      "mode": [
+        { "mode_type": "revive_teleport",
+          "coordinates": [500, {"~": "15"}, 200],
+          "return_delay_ticks": 60
+        }
+      ]
+    }
   }
   ```
 
@@ -270,4 +308,27 @@ The case of characters is crucial when creating JSON scripts!
         ]
     }
 ]
+```
+
+### 9. Branching logic ("case")
+
+  Allows you to check a chain of conditions in turn and execute only the `Then` action that first matches the `If` conditions..
+
+  ```json
+  {
+    "case": [
+      {
+        "If": { "query": { "global_atmosphere": { ">=": 100 } } },
+        "Then": [
+          { "say": { "text": "Critical atmospheric level!" } }
+        ]
+      },
+      {
+        "If": { "query": { "global_atmosphere": { ">=": 50 } } },
+        "Then": [
+          { "say": { "text": "Atmosphere is normal." } }
+        ]
+      }
+    ]
+  }
 ```

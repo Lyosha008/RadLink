@@ -63,6 +63,17 @@
               "amplifier": 1
             }
           },
+          {
+            "tp": {
+              "mode": [
+                {
+                  "mode_type": "revive_teleport",
+                  "coordinates": [500, {"~": "15"}, 200],
+                  "return_delay_ticks": 60
+                }
+              ]
+            }
+          },
           { "say": { "text": "Atmosphere: ${global_atmosphere}"}},
           {
             "set": [

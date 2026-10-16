@@ -8,6 +8,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,8 +22,10 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -117,7 +121,7 @@ public class ScriptEngine {
         return false;
     }
 
-    private static boolean checkNestedCondition(JsonObject varCheck, ServerLevel level, BlockPos pos, Entity entity, DamageSource damageSource) {
+    private static boolean checkNestedCondition(JsonObject varCheck,ServerLevel level,BlockPos pos,Entity entity,DamageSource damageSource) {
         if (damageSource != null && varCheck.has("entity")) {
             JsonElement entElem = varCheck.get("entity");
             if (entElem.isJsonArray()) {
@@ -475,31 +479,6 @@ public class ScriptEngine {
             }
         }
 
-        if (thenObj.has("set")) {
-            JsonElement setElem = thenObj.get("set");
-
-            if (setElem.isJsonArray()) {
-                JsonArray setArray = setElem.getAsJsonArray();
-                for (JsonElement itemElem : setArray) {
-                    if (itemElem.isJsonObject()) {
-                        executeSetBlockAction(itemElem.getAsJsonObject(), level, pos, entity);
-                    }
-                }
-            } else if (setElem.isJsonObject()) {
-                JsonObject setObj = setElem.getAsJsonObject();
-                Map<String, Object> vars = Radlink.loadWorldVariables();
-
-                boolean changed = false;
-                for (Map.Entry<String, JsonElement> entry : setObj.entrySet()) {
-                    String varName = resolveVarName(entry.getKey(), level, pos, entity);
-                    double newValue = parseValueOrVar(entry.getValue(), level, pos, entity);
-                    vars.put(varName, newValue);
-                    changed = true;
-                }
-                if (changed) Radlink.saveWorldVariables(vars);
-            }
-        }
-
         if (thenObj.has("sound") && thenObj.get("sound").isJsonObject()) {
             JsonObject soundObj = thenObj.getAsJsonObject("sound");
             String soundId = soundObj.get("id").getAsString();
@@ -549,6 +528,22 @@ public class ScriptEngine {
             entity.hurt(level.damageSources().magic(), thenObj.get("damage").getAsFloat());
         }
 
+        if (thenObj.has("tp")) {
+            JsonElement tpElem = thenObj.get("tp");
+
+            if (tpElem.isJsonArray()) {
+                JsonArray tpArray = tpElem.getAsJsonArray();
+                for (JsonElement itemElem : tpArray) {
+                    if (itemElem.isJsonObject()) {
+                        executeTeleportAction(itemElem.getAsJsonObject(), level, pos, entity);
+                    }
+                }
+            } else if (tpElem.isJsonObject()) {
+                executeTeleportAction(tpElem.getAsJsonObject(), level, pos, entity);
+            }
+        }
+
+
         if (thenObj.has("say") && thenObj.get("say").isJsonObject()) {
             JsonObject sayObj = thenObj.getAsJsonObject("say");
             if (sayObj.has("text")) {
@@ -582,7 +577,8 @@ public class ScriptEngine {
 
         if (thenObj.has("summon") && entity instanceof LivingEntity livingEntity) {
             JsonObject summonObj = thenObj.getAsJsonObject("summon");
-            String entityTypeId = summonObj.has("type") ? summonObj.get("type").getAsString():(summonObj.has("id")?summonObj.get("id").getAsString():"");
+            String entityTypeId = summonObj.has("type") ? summonObj.get("type").getAsString():
+                                                            (summonObj.has("id")?summonObj.get("id").getAsString():"");
 
             var entityType = ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation(entityTypeId));
             if (entityType != null && livingEntity.level() instanceof ServerLevel serverLevel) {
@@ -591,7 +587,7 @@ public class ScriptEngine {
                 for (int i = 0; i < count; i++) {
                     Entity spawned = entityType.create(serverLevel);
                     if (spawned != null) {
-                        spawned.moveTo(livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(), livingEntity.getYRot(), livingEntity.getXRot());
+                        spawned.moveTo(livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(),livingEntity.getYRot(),livingEntity.getXRot());
                         serverLevel.addFreshEntity(spawned);
                     }
                 }
@@ -600,7 +596,8 @@ public class ScriptEngine {
 
         if (thenObj.has("effect") && entity instanceof LivingEntity livingEntity) {
             JsonObject eff = thenObj.getAsJsonObject("effect");
-            String effectId = eff.has("type") ? eff.get("type").getAsString() : (eff.has("id") ? eff.get("id").getAsString() : "");
+            String effectId = eff.has("type") ? eff.get("type").getAsString() :
+                                                                    (eff.has("id") ? eff.get("id").getAsString() : "");
             var effect = ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation(effectId));
 
             if (effect != null) {
@@ -617,9 +614,12 @@ public class ScriptEngine {
             int count = particleObj.has("count") ? particleObj.get("count").getAsInt() : 1;
             double speed = particleObj.has("speed") ? particleObj.get("speed").getAsDouble() : 0.1;
 
-            double offX=particleObj.has("offset_x")?particleObj.get("offset_x").getAsDouble():(particleObj.has("x")?particleObj.get("x").getAsDouble():0.5);
-            double offY=particleObj.has("offset_y")?particleObj.get("offset_y").getAsDouble():(particleObj.has("y")?particleObj.get("y").getAsDouble():1.0);
-            double offZ=particleObj.has("offset_z")?particleObj.get("offset_z").getAsDouble():(particleObj.has("z")?particleObj.get("z").getAsDouble():0.5);
+            double offX=particleObj.has("offset_x")?particleObj.get("offset_x").getAsDouble():
+                                                        (particleObj.has("x")?particleObj.get("x").getAsDouble():0.5);
+            double offY=particleObj.has("offset_y")?particleObj.get("offset_y").getAsDouble():
+                                                        (particleObj.has("y")?particleObj.get("y").getAsDouble():1.0);
+            double offZ=particleObj.has("offset_z")?particleObj.get("offset_z").getAsDouble():
+                                                        (particleObj.has("z")?particleObj.get("z").getAsDouble():0.5);
 
             double defaultSpread = particleObj.has("spread") ? particleObj.get("spread").getAsDouble() : 0.1;
             double deltaX = particleObj.has("delta_x") ? particleObj.get("delta_x").getAsDouble() : defaultSpread;
@@ -648,8 +648,97 @@ public class ScriptEngine {
             String formattedText = formatTextWithVariables(rawText, level, pos, entity);
 
             for (ServerPlayer player : level.players()) {
-                player.sendSystemMessage(net.minecraft.network.chat.Component.literal(formattedText));
+                player.sendSystemMessage(Component.literal(formattedText));
             }
+        }
+    }
+
+    private static void executeTeleportAction(JsonObject tpObj, ServerLevel level, BlockPos basePos, Entity entity) {
+        if (entity == null || level == null) return;
+
+        final double backX = entity.getX();
+        final double backY = entity.getY();
+        final double backZ = entity.getZ();
+        final float backYaw = entity.getYRot();
+        final float backPitch = entity.getXRot();
+        final ResourceKey<Level> backDimension = level.dimension();
+        final java.util.UUID entityUUID = entity.getUUID();
+
+        double tpX = backX;
+        double tpY = backY;
+        double tpZ = backZ;
+
+        String modeType = "teleport";
+        int returnDelayTicks = 0;
+
+        if (tpObj.has("mode") && tpObj.get("mode").isJsonArray()) {
+            for (JsonElement mElem : tpObj.getAsJsonArray("mode")) {
+                if (!mElem.isJsonObject()) continue;
+                JsonObject mObj = mElem.getAsJsonObject();
+
+                if (mObj.has("mode_type")) {
+                    modeType = mObj.get("mode_type").getAsString();
+                }
+                if (mObj.has("coordinates") && mObj.get("coordinates").isJsonArray()) {
+                    JsonArray coordsArr = mObj.getAsJsonArray("coordinates");
+                    if (coordsArr.size() >= 3) {
+                        tpX = parseStructuredCoordinate(coordsArr.get(0), backX);
+                        tpY = parseStructuredCoordinate(coordsArr.get(1), backY);
+                        tpZ = parseStructuredCoordinate(coordsArr.get(2), backZ);
+                    }
+                }
+                if (mObj.has("return_delay_ticks")) {
+                    returnDelayTicks = mObj.get("return_delay_ticks").getAsInt();
+                }
+            }
+        }
+
+        boolean shouldReturn = false;
+
+        if ("revive_teleport".equalsIgnoreCase(modeType)) {
+            if (entity instanceof ServerPlayer player) {
+                if (player.isSpectator()) {
+                    player.setGameMode(GameType.SURVIVAL);
+                }
+                player.setHealth(player.getMaxHealth());
+            } else if (entity instanceof LivingEntity living) {
+                living.deathTime = 0;
+                living.setHealth(living.getMaxHealth());
+            } else if (entity instanceof ItemEntity item) {
+                item.setPickUpDelay(0);
+            }
+            entity.clearFire();
+
+            if (returnDelayTicks > 0) {
+                shouldReturn = true;
+            }
+        }
+
+        if (shouldReturn) WorldTickHandler.scheduleReturn(entityUUID,backDimension,backX,backY,backZ,backYaw,backPitch,returnDelayTicks);
+
+        if (entity instanceof ServerPlayer player) { player.teleportTo(level,tpX,tpY,tpZ,entity.getYRot(),entity.getXRot());
+        } else {entity.teleportTo(tpX, tpY, tpZ);
+        }
+    }
+
+    private static double parseStructuredCoordinate(JsonElement elem, double currentVal) {
+        if (elem.isJsonObject()) {
+            JsonObject obj = elem.getAsJsonObject();
+            if (obj.has("~")) {
+                try {
+                    return currentVal + obj.get("~").getAsDouble();
+                } catch (Exception e) {
+                    return currentVal;
+                }
+            }
+        }
+        if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isNumber()) {
+            return Math.floor(elem.getAsDouble()) + 0.5;
+        }
+        try {
+            return Math.floor(Double.parseDouble(elem.getAsString())) + 0.5;
+        } catch (NumberFormatException e) {
+            return currentVal;
         }
     }
 

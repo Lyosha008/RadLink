@@ -1,5 +1,7 @@
 # RadLink Mod & Script Engine Documentation
 
+More information on my github: https://github.com/Lyosha008/RadLink
+
 This mod allows you to create custom items, events, blocks,
 as well as fully customize the game's Main Menu using a flexible system of JSON configurations and scripts.
 
@@ -145,6 +147,19 @@ The case of characters is crucial when creating JSON scripts!
 
 * summon — Summoning an entity:
   { "summon": { "type": "minecraft:zombie", "count": 1 } }
+
+* tp — Teleporting the entity without reviving it or scheduling a return:
+  {
+      "tp": {
+          "mode": [
+              { "mode_type": "teleport" },
+              { "coordinates": [100, 70, -20] }
+          ]
+      }
+  }
+
+  Use "mode_type": "revive_teleport" to revive the entity and optionally return it
+  after "return_delay_ticks".
 
 * damage — Creating magical damage to an entity:
   { "damage": 5.0 }

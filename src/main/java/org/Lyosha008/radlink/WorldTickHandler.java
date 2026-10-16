@@ -10,6 +10,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+// Наши новые импорты для телепорта
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.UUID;
+
 @Mod.EventBusSubscriber(modid = Radlink.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class WorldTickHandler {
 
@@ -39,6 +49,13 @@ public class WorldTickHandler {
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
 
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server != null) {
+            // Вызываем тикер телепорта каждую секунду без привязки к твоим скриптам
+            tickTeleportQueue(server);
+        }
+
+        // ТВОЙ ОРИГИНАЛЬНЫЙ КОД НИЖЕ (БЕЗ ИЗМЕНЕНИЙ)
         normalTickCounter++;
         superTickCounter++;
 
@@ -50,7 +67,6 @@ public class WorldTickHandler {
         if (runNormal) normalTickCounter = 0;
         if (runSuper) superTickCounter = 0;
 
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
 
         Path worldRoot = Radlink.resolveWorldDataDir();
@@ -76,6 +92,79 @@ public class WorldTickHandler {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    // --- ЛОГИКА ОЧЕРЕДИ ТЕЛЕПОРТА (ПРОСТО ДОПИСАНА В КОНЕЦ КЛАССА) ---
+    private static class ReturnData {
+        UUID entityUUID;
+        ResourceKey<Level> targetDimension;
+        double x, y, z;
+        float yaw, pitch;
+        int remainingTicks;
+
+        ReturnData(UUID uuid, ResourceKey<Level> dim, double x, double y, double z, float yaw, float pitch, int ticks) {
+            this.entityUUID = uuid;
+            this.targetDimension = dim;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.remainingTicks = ticks;
+        }
+    }
+
+    private static final List<ReturnData> teleportQueue = new ArrayList<>();
+
+    public static void scheduleReturn(UUID uuid, ResourceKey<Level> dim, double x, double y, double z, float yaw, float pitch, int ticks) {
+        teleportQueue.add(new ReturnData(uuid, dim, x, y, z, yaw, pitch, ticks));
+    }
+
+    private static void tickTeleportQueue(MinecraftServer server) {
+        if (teleportQueue.isEmpty()) return;
+
+        Iterator<ReturnData> iterator = teleportQueue.iterator();
+        while (iterator.hasNext()) {
+            ReturnData data = iterator.next();
+            data.remainingTicks--;
+
+            if (data.remainingTicks <= 0) {
+                Entity targetEntity = null;
+                ServerPlayer player = server.getPlayerList().getPlayer(data.entityUUID);
+
+                if (player != null) {
+                    targetEntity = player;
+                } else {
+                    for (ServerLevel level : server.getAllLevels()) {
+                        Entity found = level.getEntity(data.entityUUID);
+                        if (found != null) {
+                            targetEntity = found;
+                            break;
+                        }
+                    }
+                }
+
+                if (targetEntity != null && targetEntity.isAlive()) {
+                    ServerLevel targetWorld = server.getLevel(data.targetDimension);
+                    if (targetWorld != null) {
+                        BlockPos pos = new BlockPos((int) data.x, (int) data.y, (int) data.z);
+                        targetWorld.setChunkForced(targetWorld.getChunkAt(pos).getPos().x, targetWorld.getChunkAt(pos).getPos().z, true);
+
+                        if (targetEntity instanceof ServerPlayer serverPlayer) {
+                            serverPlayer.teleportTo(targetWorld, data.x, data.y, data.z, data.yaw, data.pitch);
+                        } else {
+                            if (targetEntity.level() != targetWorld) {
+                                targetEntity.changeDimension(targetWorld);
+                            }
+                            targetEntity.moveTo(data.x, data.y, data.z, data.yaw, data.pitch);
+                        }
+
+                        targetWorld.setChunkForced(targetWorld.getChunkAt(pos).getPos().x, targetWorld.getChunkAt(pos).getPos().z, false);
+                    }
+                }
+                iterator.remove();
+            }
         }
     }
 }
