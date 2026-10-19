@@ -86,8 +86,6 @@ Allows changing the background (including frame-by-frame animation), modifying b
         "bg_1.png",
         "bg_2.png"
     ],
-    // Alternative to "frames" — static background:
-    // "texture": "bg.png",
 
     "buttons": {
         "singleplayer": {
