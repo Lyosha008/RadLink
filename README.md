@@ -1,70 +1,95 @@
 # RadLink Mod & Script Engine Documentation
 
-This mod allows you to create custom items, events, blocks, as well as fully customize the game's Main Menu using a flexible system of JSON configurations and scripts.
+RadLink is a Minecraft Forge mod (1.20.2, Forge 48.1.0) that lets you create custom items, events, blocks, armor, effects, and fully customize the game's Main Menu using flexible JSON configurations and a built-in script engine.
 
 ---
 
-## 1. Folder Structure and File Location
+## Table of Contents
 
-All script and menu configuration JSON files are stored in the game folder and can be linked to a specific world or server.
+1. [Folder Structure and File Locations](#1-folder-structure-and-file-locations)
+2. [Mod Configuration (`radlink-client.toml`)](#2-mod-configuration-radlink-clienttoml)
+3. [Main Menu Customization (`menu_background.json`)](#3-main-menu-customization-menu_backgroundjson)
+4. [Script System Basics](#4-script-system-basics)
+5. [Conditions (`if` / `If` / `iF`)](#5-conditions-if--if--if)
+   - [`query` vs `calc` — What's the Difference?](#query-vs-calc--whats-the-difference)
+   - [Complete Condition Reference](#complete-condition-reference)
+6. [Actions (`then` / `Then`)](#6-actions-then--then)
+7. [Variables and Placeholders](#7-variables-and-placeholders)
+8. [Branching Logic (`case`)](#8-branching-logic-case)
+9. [Complete Script Examples](#9-complete-script-examples)
+10. [Tips and Troubleshooting](#10-tips-and-troubleshooting)
 
-### A) For Single-Player Worlds
-`run/saves/<World_Name>/radlink/`
+---
 
-### B) For Servers (Menu Background and Buttons for Specific IP)
-`run/radlink/servers/<Server_IP_without_dots>/`
+## 1. Folder Structure and File Locations
 
-*Example for play.example.com:*
-`run/radlink/servers/play_example_com/menu_background.json`
+All script and menu configuration JSON files are stored inside the game folder and can be linked to a specific single-player world or a multiplayer server.
 
-```text
-├── assets/              <-- folder for custom resources and textures
-├── data/                <-- generation data and data packs
-├── armor_item.json      <-- settings and scripts for armor items
-├── blocks.json          <-- behavior and event scripts for blocks
-├── effects.json         <-- registration and parameters for effects
-├── global.json          <-- global events and world tickers
-├── items.json           <-- item scripts (including right_click)
-├── menu_background.json <-- customization of the main menu and buttons
-├── variables.json       <-- dynamic variable storage
-└── pack.mcmeta          <-- metadata datapack/resource pack
+### A) Single-Player Worlds
+```
+run/saves/<World_Name>/radlink/
+```
+
+### B) Servers (Menu Background and Buttons for Specific IP)
+```
+run/radlink/servers/<Server_IP_without_dots>/
+```
+*Example for `play.example.com`:*
+```
+run/radlink/servers/play_example_com/menu_background.json
+```
+
+### Available files inside `radlink/`
+
+| File | Purpose |
+|------|---------|
+| `assets/` | Custom resources and textures |
+| `data/` | Generation data and data packs |
+| `armor_item.json` | Settings and scripts for custom armor items |
+| `blocks.json` | Behavior and event scripts for custom blocks |
+| `effects.json` | Registration and parameters for custom potion effects |
+| `global.json` | Global events and world tickers |
+| `items.json` | Item scripts (including `right_click` triggers) |
+| `menu_background.json` | Customization of the main menu and buttons |
+| `variables.json` | Dynamic world variable storage |
+| `pack.mcmeta` | Metadata for datapack / resource pack |
+
+---
+
+## 2. Mod Configuration (`radlink-client.toml`)
+
+Located in `run/config/radlink-client.toml`. Main parameters:
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `isMenuChange` | `true` / `false` | `true` enables custom menu background and button reconfiguration. `false` disables all menu changes (100% vanilla appearance). |
+| `serverOrWorldName` | `""` or name | Forces the mod to load `menu_background.json` from a specific world or server. If empty (`""`), data is loaded from the last launched world automatically. |
+
+*Example:*
+```toml
+isMenuChange = true
+serverOrWorldName = "MyAwesomeWorld"
 ```
 
 ---
 
-## 2. Mod Configuration (radlink-client.toml)
+## 3. Main Menu Customization (`menu_background.json`)
 
-In the folder `run/config/radlink-client.toml` the following main parameters are available:
+Allows changing the background (including frame-by-frame animation), modifying button positions and textures, hiding them, or adding new custom buttons.
 
-* **`isMenuChange = true / false`**
-  * `true`: Enables custom menu background and button reconfiguration.
-  * `false`: Completely disables all menu changes (the game maintains 100% vanilla appearance, logo, panorama, and standard buttons).
-
-* **`serverOrWorldName = ""`**
-  * Allows forcing the mod to take background and menu settings (`menu_background.json`) from a specific world or server.
-  * *Example for a world:* `"MyAwesomeWorld"`
-  * *Example for a server:* `"play.example.com"`
-  * *Note:* If left empty (`""`), the mod automatically loads data from the last launched world.
-
----
-
-## 3. Menu Customization (menu_background.json)
-
-Allows changing the background (including GIF-like animation), modifying button positions and textures, hiding them, or adding new ones.
-
-### Structure of menu_background.json
-
+### Structure
 ```json5
 {
-    "fps": 20,                          // Animation speed of the background (frames per second)
-    "frames": [                         // Animation frames of the background (PNG files in the folder)
+    "fps": 20,
+    "frames": [
         "bg_0.png",
         "bg_1.png",
         "bg_2.png"
     ],
-    // Instead of "frames" you can specify a static background: "texture": "bg.png",
+    // Alternative to "frames" — static background:
+    // "texture": "bg.png",
 
-    "buttons": {                        // Redefinition of vanilla buttons
+    "buttons": {
         "singleplayer": {
             "x": 20, "y": 80,
             "width": 180, "height": 30,
@@ -75,202 +100,300 @@ Allows changing the background (including GIF-like animation), modifying button 
             "x": 20, "y": 120,
             "width": 180, "height": 30
         },
-        "language": {                     // Icon of the language (globe)
-            "use": "No"                     // Completely hide the button
+        "language": {
+            "use": "No"
         },
-        "accessibility": {                // Icon of accessibility (human figure)
-            "use": "No"                     // Completely hide the button
+        "accessibility": {
+            "use": "No"
         },
         "realms": {
-            "use": "No"                     // Hide the Realms button
+            "use": "No"
         }
     },
 
-    "custom_buttons": [                 // Additional custom buttons
+    "custom_buttons": [
         {
             "text": "Mod Guide",
             "x": 20, "y": 200,
             "width": 180, "height": 20,
-            "url": "https://wiki.example.com", // Opens link in browser
+            "url": "https://wiki.example.com",
             "use": "Yes"
         }
     ]
 }
 ```
 
-### Keys of standard buttons in "buttons":
-* `singleplayer` (Single Player)
-* `multiplayer` (Multi Player)
-* `mods` (Mods)
-* `options` (Options)
-* `quit` (Quit Game)
-* `language` (Language Selection / Globe Icon)
-* `accessibility` (Accessibility Settings / Human Icon)
-* `realms` (Minecraft Realms)
+### Standard button keys in `buttons`
+* `singleplayer` — Single Player
+* `multiplayer` — Multi Player
+* `mods` — Mods
+* `options` — Options
+* `quit` — Quit Game
+* `language` — Language Selection / Globe Icon
+* `accessibility` — Accessibility Settings / Human Icon
+* `realms` — Minecraft Realms
 
-### Parameter "use":
-* Accepts values `"No"`, `"false"` or `"0"` to completely hide the button.
-
----
-
-## 4. Difference between "if" and "If" in scripts
-
-The case of characters is crucial when creating JSON scripts!
-
-* **`"if"` (Main block of conditions):**
-  * Checked **at the beginning** of event processing.
-  * Determines whether the script will run at all.
-  * Contains global context (`"who": "entity" / "block"`, item check in hand `"item"`, time cycles `"timeCycles"`, etc.).
-
-* **`"If"` / `"iF"` (Nested condition inside "then"):**
-  * Checked **inside** the list of actions (dynamically).
-  * Used for branching logic (similar to if-then-else construct).
-  * Executes a specific action `"Then"` only when the condition is met (e.g., checking a variable via `"query"` or block state).
+### Parameter `use`
+Accepts `"No"`, `"false"` or `"0"` to completely hide the button.
 
 ---
 
-## 5. Conditions for Script Checking ("if" / "If")
+## 4. Script System Basics
 
-* `"entity": "player" | "zombie"` — checking the type of entity.
-* `"item": "minecraft:diamond"` — checking the item in the main hand.
-* `"lit": true | false` — checking the state of the block (lit/unlit).
-* `"query": { "global_atmosphere": { ">=": 10 } }` — checking the values of variables.
-* `"timeCycles": { "now": "isNewDay" }` — checking the occurrence of a new day.
-*
-* If query seems too simple for you, you can use calc with advanced functions such as multiplication, division, addition, subtraction, exponentiation, etc.:
-  ```json
-  { "calc": { "global_atmosphere": { ">=": { "multiply": [5, 2] } } } }
-  ```
+RadLink scripts are JSON arrays of script definitions. Each definition has:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `id` | `string` | Unique identifier for the script/item/block |
+| `name` | `string` | Display name |
+| `maxStackSize` | `int` | Maximum stack size (for items) |
+| `trigger` | `string` | Event that triggers the script (e.g., `"right_click"`) |
+| `if` | `object` | **Main condition block**. Checked at the beginning of event processing. Determines whether the script runs at all. |
+| `then` | `array` or `object` | **Actions**. Executed if the `if` condition is met. |
+
+### `if` vs `If` / `iF`
+
+| | `if` (lowercase) | `If` / `iF` (mixed case) |
+|---|------------------|--------------------------|
+| **When checked** | At the **beginning** of event processing | **Inside** the action list (dynamically) |
+| **Purpose** | Global gate — decides if the script runs at all | Branching logic inside `then` — similar to if-then-else |
+| **Typical use** | Checking entity type, block state, item in hand | Checking variable values during action execution |
+
+Character case is crucial in JSON scripts!
 
 ---
 
-## 6. Actions for Script Execution ("then" / "Then")
+## 5. Conditions (`if` / `If` / `iF`)
 
-* **explosion** — Creating an explosion (at the location of the entity or block):
-  ```json
-  { "explosion": { "radius": 4.0, "fire": false } }
-  ```
+Conditions are checked inside `checkConditions()` (main `if`) and `checkNestedCondition()` (nested `If`/`iF`).
+### `query` vs `calc` — What's the Difference?
 
-* **summon** — Summoning an entity:
-  ```json
-  { "summon": { "type": "minecraft:zombie", "count": 1 } }
-  ```
+Both are used to check variable values, but they serve different purposes:
 
-* **damage** — Creating magical damage to an entity:
-  ```json
-  { "damage": 5.0 }
-  ```
+| | `query` | `calc` |
+|---|---------|--------|
+| **Purpose** | Simple comparison of a variable against a value | Evaluate a mathematical expression, then compare the result |
+| **Math operations** | Comparison operators only (`>=`, `>`, `<=`, `<`, `==`, `!=`, range) | Full arithmetic (`+`, `-`, `*`, `/`, `%`, `^`, parentheses, `multiply`, etc.) |
+| **How variables are used** | Variable names are **object keys** | Variables are inserted inside the **expression string** via `${...}` |
+| **Best for** | Quick threshold checks | Complex formulas where you must calculate first, then compare |
 
-* **effect** — Applying a potion effect:
-  ```json
-  { "effect": { "id": "minecraft:regeneration", "duration": 100, "amplifier": 1 } }
-  ```
+> *"If `query` seems too simple for you, you can use `calc` with advanced functions such as multiplication, division, addition, subtraction, exponentiation, etc."*
+
+#### `query` — Simple Variable Check
+
+Compares a world variable directly with a number or operator object.
+
+**Form 1 — Object (single variable):**
+```json
+{ "query": { "global_atmosphere": { ">=": 10 } } }
+```
+
+**Form 2 — Array (computed value vs threshold):**
+```json
+{ "query": [
+    { "random": [{ "from": 0 }, { "to": 1 }, { "numbers_after_comma": 2 }] },
+    { "<=": 0.05 }
+] }
+```
+
+*Examples from `global.json`:*
+```json
+{ "query": { "global_atmosphere": { ">": 100 } } }
+```
+```json
+{ "query": { "entity_disease_progress": { ">": 0 } } }
+```
+
+#### `calc` — Mathematical Expression Evaluation
+
+Evaluates an expression string (with `${variable}` placeholders substituted) and compares the result.
+
+**Basic form:**
+```json
+{ "calc": { "expression": "${global_atmosphere} / 2", ">=": 100 } }
+```
+
+**With nested math in the comparison value:**
+```json
+{ "calc": { "global_atmosphere": { ">=": { "multiply": [5, 2] } } } }
+```
+
+*Example from `items.json`:*
+```json
+{ "calc": { "expression": "${global_atmosphere} / 2", ">=": 100 } }
+```
+
+**Supported math in `calc` / `evaluateMath()`:**
+* Operators: `+`, `-`, `*`, `/`, `%` (modulo), `^` (power)
+* Parentheses: `(`, `)`
+* Unary plus/minus
+
+### Complete Condition Reference
+
+| Condition | Type | Example | Description |
+|-----------|------|---------|-------------|
+| `who` | `string` | `"entity"` or `"block"` | Defines context for world-tick scripts |
+| `block` | `object` | `{ "block": { "==": "minecraft:furnace" } }` | Matches a specific block ID (used with `who: "block"`) |
+| `lit` | `boolean` | `{ "lit": true }` | Checks if block state has `lit` property |
+| `entity` | `object` / `array` | `{ "entity": { "==": "player" } }` | Checks entity type (`==` or `!=`) |
+| `item` | `object` / `string` | `{ "item": { "==": "minecraft:diamond" } }` | Checks item in player's main hand |
+| `query` | `object` / `array` | `{ "query": { "global_atmosphere": { ">=": 10 } } }` | Simple variable comparison |
+| `calc` | `object` | `{ "calc": { "expression": "${x} + 1", ">=": 5 } }` | Math expression evaluation + comparison |
+| `timeCycles` | `object` | `{ "timeCycles": { "now": "isNewDay" } }` | Checks if a new Minecraft day has started |
+| `weather` | `string` | `{ "weather": "clear" }` | Checks weather: `clear`, `rain`, `thunder` |
+| `time_check` | `object` | `{ "time_check": { "ago": "second", "time": 100 } }` | Checks time since rain started |
+| `var` | `object` | `{ "var": "${heat}", ">": 100 }` | Shorthand variable check (nested `If`) |
+| `super` | `boolean` | `{ "super": true }` | Marks script as "super" priority |
+
+**Comparison operators supported in condition values:**
+* `>=`, `>`, `<=`, `<` — numeric comparisons
+* `==`, `!=` — equality / inequality
+* Array form `[ { "from": 0 }, { "to": 100 } ]` — range check (value is between `from` and `to` inclusive)
+
+---
+
+## 6. Actions (`then` / `Then`)
+
+Actions are executed when conditions pass. They can be a single object or an array of objects.
+
+| Action | Type | Example | Description |
+|--------|------|---------|-------------|
+| `explosion` | `object` | `{ "explosion": { "radius": 4.0, "fire": false } }` | Creates an explosion at entity/block position |
+
+| `summon` | `object` | `{ "summon": { "type": "minecraft:zombie", "count": 1 } }` | Spawns an entity |
+
+| `damage` | `number` | `{ "damage": 5.0 }` | Deals magic damage to the entity |
+
+| `effect` | `object` | `{ "effect": { "id": "minecraft:regeneration", "duration": 100, "amplifier": 1 } }` | Applies a potion effect |
   
-* **command** — Executing a command:
-  ```json
-  { "command": "give @s minecraft:diamond 1" }
-  ```
+| `command` | `string` | `{ "command": "give @s minecraft:diamond 1" }` | Executes a server command |
 
-* **sound** — Playing a sound:
-  ```json
-  { "sound": { "id": "minecraft:entity.experience_orb.pickup", "volume": 1.0, "pitch": 1.0 } }
-  ```
+| `sound` | `object` | `{ "sound": { "id": "minecraft:entity.experience_orb.pickup", "volume": 1.0, "pitch": 1.0 } }` | Plays a sound |
 
-* **particle** — Spawning particles:
-  ```json
-  { "particle": { "type": "minecraft:flame", "count": 10, "speed": 0.1 } }
-  ```
+| `particle` | `object` | `{ "particle": { "type": "minecraft:flame", "count": 10, "speed": 0.1 } }` | Spawns particles |
 
-* **say / message** — Sending a message in chat (supports placeholders `${variables}`):
-  ```json
-  { "say": { "text": "Current atmosphere: ${global_atmosphere}" } }
-  ```
+| `say` / `message` | `object` | `{ "say": { "text": "Atmosphere: ${global_atmosphere}" } }` | Sends chat message to all players (supports `${variables}`) |
 
-* **add / set (variables)** — Changing or setting numerical values:
-  ```json
-  { "add": { "global_atmosphere": 1.0 } }
-  ```
+| `add` | `object` | `{ "add": { "global_atmosphere": 1.0 } }` | Adds value to a variable (if result ≤ 0, variable is removed) |
+| `set` | `object` / `array` | `{ "set": { "has_right_arm": 3.0 } }` | Sets a variable value |
+| `set` (blocks) | `array` | See below | Sets a single block or fills an area |
+| `tp` | `object` | See below | Teleports an entity |
+| `run` | `array` | `{ "run": [ { "command": "..." }, { "command": "..." } ] }` | Runs multiple actions in sequence |
 
-* **set (blocks)** — Setting a single block or filling (fill) an area:
+### `set` — Blocks (Single Block or Fill Area)
 
-  *A) Single block (`mode_type: "set_block"`):*
-  ```json
-  {
-      "set": [
-          {
-              "mode": [
-                  { "mode_type": "set_block" },
-                  { "coordinates_1": [{ "~": "0" }, { "~": "1" }, { "~": "0" }] }
-              ],
-              "block": "minecraft:fire"
-          }
-      ]
-  }
-  ```
-
-  *B) Filling the area (`mode_type: "fill"`):*
-  ```json
-  {
-      "set": [
-          {
-              "mode": [
-                  { "mode_type": "fill" },
-                  { "coordinates_1": [{ "~": "-1" }, { "~": "-1" }, { "~": "-1" }] },
-                  { "coordinates_2": [{ "~": "1" }, { "~": "-1" }, { "~": "1" }] }
-              ],
-              "block": "minecraft:diamond_block",
-              "tests": [
-                  { "isAir": false, "type": "destroy", "filter": "white_wool" }
-              ]
-          }
-      ]
-  }
-  ```
-  
-*  **tp (entity)** — Teleporting an entity to specific coordinates:
-
-  *A) Teleporting to coordinates:*
-  ```json
-  { 
-      "tp": {
-          "mode": [
-              { "mode_type": "teleport" },
-              { "coordinates": [{ "~": "0" }, { "~": "1" }, { "~": "0" }] }
-              ]
-          }
-  }
-  ```
-
-  *B) Teleporting to coordinates and also returns back after a time that you specify in ticks (1 tick = 1/20 of a second):*
-  ```json
-  {
-    "tp": {
-      "mode": [
-        { "mode_type": "revive_teleport",
-          "coordinates": [500, {"~": "15"}, 200],
-          "return_delay_ticks": 60
+**A) Single block (`mode_type: "set_block"`):**
+```json
+{
+    "set": [
+        {
+            "mode": [
+                { "mode_type": "set_block" },
+                { "coordinates_1": [{ "~": "0" }, { "~": "1" }, { "~": "0" }] }
+            ],
+            "block": "minecraft:fire"
         }
-      ]
+    ]
+}
+```
+
+**B) Fill area (`mode_type: "fill"`):**
+```json
+{
+    "set": [
+        {
+            "mode": [
+                { "mode_type": "fill" },
+                { "coordinates_1": [{ "~": "-1" }, { "~": "-1" }, { "~": "-1" }] },
+                { "coordinates_2": [{ "~": "1" }, { "~": "-1" }, { "~": "1" }] }
+            ],
+            "block": "minecraft:diamond_block",
+            "tests": [
+                { "isAir": false, "type": "destroy", "filter": "white_wool" }
+            ]
+        }
+    ]
+}
+```
+
+**Coordinate syntax:** `"~"` means current position; `{ "~": "-1" }` means current + offset.
+
+**Fill `tests` fields:**
+* `isAir` — `true`/`false`, only modify blocks matching air condition
+* `type` — `destroy`, `keep`, `replace`
+* `filter` — block ID filter (only blocks matching this ID are affected)
+  
+### `tp` — Teleport Entity
+
+**A) Simple teleport:**
+```json
+{
+    "tp": {
+        "mode": [
+            { "mode_type": "teleport" },
+            { "coordinates": [{ "~": "0" }, { "~": "1" }, { "~": "0" }] }
+        ]
     }
-  }
-  ```
+}
+```
+
+**B) Teleport with return after delay (`revive_teleport`):**
+```json
+{
+    "tp": {
+        "mode": [
+            {
+                "mode_type": "revive_teleport",
+                "coordinates": [500, { "~": "15" }, 200],
+                "return_delay_ticks": 60
+            }
+        ]
+    }
+}
+```
+*1 tick = 1/20 second. `return_delay_ticks: 60` = 3 seconds.*
 
 ---
 
 ## 7. Variables and Placeholders
 
-* **Global Variables:**
-  Variables with the prefix `global_` (e.g., `${global_atmosphere}`) are saved for the entire world inside the `variables.json` file. They don't reset when the player dies or leaves the server.
+### Variable Types
 
-* **Player Variables:**
-  Regular variables are automatically bound to the player's unique UUID or to the specific coordinates of the block that triggered the event.
+| Type | Prefix | Scope | Persistence |
+|------|--------|-------|-------------|
+| **Global** | `global_` | Entire world/server | Saved in `variables.json`, survives player death and logout |
+| **Player** | (none) | Bound to player UUID | Saved per-player |
+| **Block** | (none) | Bound to dimension + X,Y,Z | Saved per-block location |
 
-* **Placeholders in Chat:**
-  You can dynamic call any variable inside text lines using the syntax `${variable_name}`. It will be replaced with its actual numeric or string value in real-time.
+### Placeholders in Text
+
+Use `${variable_name}` inside any text field (`say`, `message`, command text, etc.) to insert the current variable value at runtime.
+
+```json
+{ "say": { "text": "Current atmosphere: ${global_atmosphere}" } }
+```
+
+Placeholder syntax also supports `(variable_name)`:
+```
+${global_atmosphere}   or   (global_atmosphere)
+```
+
+### `variables.json`
+
+This file is managed automatically by the mod. You generally do not need to edit it manually, but its structure is:
+
+```json
+{
+    "global_atmosphere": 150.0,
+    "global_last_day": 12.0,
+    "heat_<dimension>_<x>_<y>_<z>": 45.0,
+    "entity_disease_progress_<UUID>": 3.0
+}
+```
 
 ---
 
-### 8. EXAMPLE OF A COMPLETE JSON SCRIPT FOR AN ITEM (items.json) 
+## 8. Branching Logic (`case`)
 ```json
 [
     {
