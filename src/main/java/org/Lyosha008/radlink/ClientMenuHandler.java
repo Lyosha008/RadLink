@@ -32,7 +32,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Mod.EventBusSubscriber(modid = Radlink.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class ClientMenuHandler {
@@ -41,8 +43,10 @@ public class ClientMenuHandler {
     private static JsonArray customButtonsJson = null;
     private static int currentFrameIndex = 0;
     private static long lastFrameTime = 0;
-    private static int frameDelayMs = 100;
+    private static int backgroundFps = 10;
+    private static long frameDelayNanos = 100_000_000L;
     private static Path activeWorldDir = null;
+    private static final Map<ResourceLocation, int[]> textureSizes = new HashMap<>();
 
     @SubscribeEvent
     public static void onScreenInit(ScreenEvent.Init.Post event) {
@@ -51,9 +55,7 @@ public class ClientMenuHandler {
                 if (!RadlinkConfig.IS_MENU_CHANGE.get()) {
                     return;
                 }
-            } catch (Exception ignored) {
-                return;
-            }
+            } catch (Exception ignored) {return;}
 
             try {
                 Field splashField = ObfuscationReflectionHelper.findField(TitleScreen.class, "splash");
@@ -87,30 +89,42 @@ public class ClientMenuHandler {
                                 widget.visible = false;
                                 widget.active = false;
 
+                                List<ResourceLocation> normalFrames = loadButtonFrames(cfg, "frames", null, buttonKey);
+                                List<ResourceLocation> hoverFrames = loadButtonFrames(cfg, "hover_frames", "hoverFrames", buttonKey + "_hover");
+
                                 if (cfg.has("texture")) {
-                                    String texPath = cfg.get("texture").getAsString();
-                                    ResourceLocation texNormal = registerOrGetTexture(activeWorldDir, texPath, buttonKey);
+                                    if (normalFrames == null) {
+                                        String texPath = cfg.get("texture").getAsString();
+                                        ResourceLocation texNormal = registerOrGetTexture(activeWorldDir, texPath, buttonKey);
 
-                                    if (texNormal == null) {
-                                        texNormal = new ResourceLocation(texPath.contains(":") ? texPath : "radlink:" + texPath);
-                                    }
-
-                                    ResourceLocation texHoverFinal = texNormal;
-                                    if (cfg.has("textureHover") || cfg.has("hover_texture")) {
-                                        String hoverPath = cfg.has("textureHover") ? cfg.get("textureHover").getAsString() : cfg.get("hover_texture").getAsString();
-                                        ResourceLocation loadedHover = registerOrGetTexture(activeWorldDir, hoverPath, buttonKey + "_hover");
-                                        if (loadedHover != null) {
-                                            texHoverFinal = loadedHover;
-                                        } else {
-                                            texHoverFinal = new ResourceLocation(hoverPath.contains(":") ? hoverPath : "radlink:" + hoverPath);
+                                        if (texNormal == null) {
+                                            texNormal = new ResourceLocation(texPath.contains(":") ? texPath : "radlink:" + texPath);
                                         }
+                                        normalFrames = List.of(texNormal);
                                     }
 
-                                    ResourceLocation finalTexNormal = texNormal;
-                                    ResourceLocation finalTexHover = texHoverFinal;
+                                    if (hoverFrames == null && (cfg.has("textureHover") || cfg.has("hover_texture"))) {
+                                        String hoverPath=cfg.has("textureHover")?cfg.get("textureHover").getAsString() :
+                                                                                 cfg.get("hover_texture").getAsString();
 
-                                    int texSrcW = getJsonInt(cfg, "textureWidth", "texture_width", 480);
-                                    int texSrcH = getJsonInt(cfg, "textureHeight", "texture_height", 50);
+                                        ResourceLocation loadedHover = registerOrGetTexture(activeWorldDir, hoverPath, buttonKey + "_hover");
+                                        if (loadedHover == null) {
+                                            loadedHover = new ResourceLocation(hoverPath.contains(":") ? hoverPath : "radlink:" + hoverPath);
+                                        }
+                                        hoverFrames = List.of(loadedHover);
+                                    }
+                                } else if (normalFrames == null && hoverFrames != null) {
+                                    normalFrames = hoverFrames;
+                                }
+
+                                if (normalFrames != null) {
+                                    final List<ResourceLocation> finalNormalFrames = normalFrames;
+                                    final List<ResourceLocation> finalHoverFrames = hoverFrames;
+                                    final int buttonFps = getButtonFps(cfg);
+                                    final boolean drawText = shouldDrawButtonText(cfg, finalNormalFrames, finalHoverFrames);
+
+                                    int texSrcW = getJsonInt(cfg, "textureWidth", "texture_width", textureDefaultWidth(finalNormalFrames.get(0)));
+                                    int texSrcH = getJsonInt(cfg,"textureHeight","texture_height",textureDefaultHeight(finalNormalFrames.get(0)));
 
                                     event.addListener(new AbstractWidget(x, y, w, h, widget.getMessage()) {
                                         @Override
@@ -118,16 +132,27 @@ public class ClientMenuHandler {
                                             RenderSystem.enableBlend();
                                             RenderSystem.defaultBlendFunc();
 
-                                            ResourceLocation textureToDraw = this.isHoveredOrFocused() ? finalTexHover : finalTexNormal;
+                                            ResourceLocation textureToDraw=pickFrame(finalNormalFrames,finalHoverFrames,this.isHoveredOrFocused(),buttonFps);
+                                            if (textureToDraw != null) {
+                                                graphics.blit(
+                                                    textureToDraw,
+                                                    this.getX(), this.getY(),
+                                                    this.width, this.height,
+                                                    0.0F, 0.0F,
+                                                    texSrcW, texSrcH,
+                                                    texSrcW, texSrcH
+                                                );
+                                            }
 
-                                            graphics.blit(
-                                                textureToDraw,
-                                                this.getX(), this.getY(),
-                                                this.width, this.height,
-                                                0.0F, 0.0F,
-                                                texSrcW, texSrcH,
-                                                texSrcW, texSrcH
-                                            );
+                                            if (drawText) {
+                                                graphics.drawCenteredString(
+                                                    Minecraft.getInstance().font,
+                                                    this.getMessage(),
+                                                    this.getX() + this.width / 2,
+                                                    this.getY() + (this.height - 8) / 2,
+                                                    this.isHoveredOrFocused() ? 0xFFFF16 : 0xFFFFFF
+                                                );
+                                            }
                                         }
 
                                         @Override
@@ -193,29 +218,40 @@ public class ClientMenuHandler {
                     int h = btnObj.has("height") ? btnObj.get("height").getAsInt() : 20;
                     String url = btnObj.has("url") ? btnObj.get("url").getAsString() : null;
 
+                    List<ResourceLocation> normalFrames = loadButtonFrames(btnObj, "frames", null, "custom_" + customIndex);
+                    List<ResourceLocation>hoverFrames=loadButtonFrames(btnObj,"hover_frames","hoverFrames","custom_"+customIndex+"_hover");
+
                     if (btnObj.has("texture")) {
-                        String texPath = btnObj.get("texture").getAsString();
-                        ResourceLocation texNormal = registerOrGetTexture(activeWorldDir, texPath, "custom_" + customIndex);
+                        if (normalFrames == null) {
+                            String texPath = btnObj.get("texture").getAsString();
+                            ResourceLocation texNormal = registerOrGetTexture(activeWorldDir, texPath, "custom_" + customIndex);
 
-                        if (texNormal == null) {
-                            texNormal = new ResourceLocation(texPath.contains(":") ? texPath : "radlink:" + texPath);
-                        }
-
-                        ResourceLocation texHoverFinal = texNormal;
-                        if (btnObj.has("textureHover") || btnObj.has("hover_texture")) {
-                            String hoverPath = btnObj.has("textureHover") ? btnObj.get("textureHover").getAsString() : btnObj.get("hover_texture").getAsString();
-                            ResourceLocation loadedHover = registerOrGetTexture(activeWorldDir, hoverPath, "custom_" + customIndex + "_hover");
-                            if (loadedHover != null) {
-                                texHoverFinal = loadedHover;
-                            } else {
-                                texHoverFinal = new ResourceLocation(hoverPath.contains(":") ? hoverPath : "radlink:" + hoverPath);
+                            if (texNormal == null) {
+                                texNormal = new ResourceLocation(texPath.contains(":") ? texPath : "radlink:" + texPath);
                             }
+                            normalFrames = List.of(texNormal);
                         }
 
-                        ResourceLocation finalTexNormal = texNormal;
-                        ResourceLocation finalTexHover = texHoverFinal;
-                        int texSrcW = getJsonInt(btnObj, "textureWidth", "texture_width", 480);
-                        int texSrcH = getJsonInt(btnObj, "textureHeight", "texture_height", 50);
+                        if (hoverFrames == null && (btnObj.has("textureHover") || btnObj.has("hover_texture"))) {
+                            String hoverPath = btnObj.has("textureHover") ? btnObj.get("textureHover").getAsString() :
+                                                                            btnObj.get("hover_texture").getAsString();
+
+                            ResourceLocation loadedHover = registerOrGetTexture(activeWorldDir, hoverPath, "custom_" + customIndex + "_hover");
+                            if (loadedHover == null) {
+                                loadedHover = new ResourceLocation(hoverPath.contains(":") ? hoverPath : "radlink:" + hoverPath);
+                            }
+                            hoverFrames = List.of(loadedHover);
+                        }
+                    } else if (normalFrames == null && hoverFrames != null) {normalFrames = hoverFrames;}
+
+                    if (normalFrames != null) {
+                        final List<ResourceLocation> finalNormalFrames = normalFrames;
+                        final List<ResourceLocation> finalHoverFrames = hoverFrames;
+                        final int buttonFps = getButtonFps(btnObj);
+                        final boolean drawText = shouldDrawButtonText(btnObj, finalNormalFrames, finalHoverFrames);
+
+                        int texSrcW = getJsonInt(btnObj, "textureWidth", "texture_width", textureDefaultWidth(finalNormalFrames.get(0)));
+                        int texSrcH = getJsonInt(btnObj, "textureHeight", "texture_height", textureDefaultHeight(finalNormalFrames.get(0)));
 
                         customIndex++;
 
@@ -225,16 +261,27 @@ public class ClientMenuHandler {
                                 RenderSystem.enableBlend();
                                 RenderSystem.defaultBlendFunc();
 
-                                ResourceLocation textureToDraw = this.isHoveredOrFocused() ? finalTexHover : finalTexNormal;
+                                ResourceLocation textureToDraw = pickFrame(finalNormalFrames, finalHoverFrames, this.isHoveredOrFocused(), buttonFps);
+                                if (textureToDraw != null) {
+                                    graphics.blit(
+                                        textureToDraw,
+                                        this.getX(), this.getY(),
+                                        this.width, this.height,
+                                        0.0F, 0.0F,
+                                        texSrcW, texSrcH,
+                                        texSrcW, texSrcH
+                                    );
+                                }
 
-                                graphics.blit(
-                                    textureToDraw,
-                                    this.getX(), this.getY(),
-                                    this.width, this.height,
-                                    0.0F, 0.0F,
-                                    texSrcW, texSrcH,
-                                    texSrcW, texSrcH
-                                );
+                                if (drawText) {
+                                    graphics.drawCenteredString(
+                                        Minecraft.getInstance().font,
+                                        this.getMessage(),
+                                        this.getX() + this.width / 2,
+                                        this.getY() + (this.height - 8) / 2,
+                                        this.isHoveredOrFocused() ? 0xFFFF16 : 0xFFFFFF
+                                    );
+                                }
                             }
 
                             @Override
@@ -248,8 +295,7 @@ public class ClientMenuHandler {
                                 }
                             }
 
-                            @Override
-                            protected void updateWidgetNarration(NarrationElementOutput output) {}
+                            @Override protected void updateWidgetNarration(NarrationElementOutput output) {}
                         });
                     } else {
                         customIndex++;
@@ -267,8 +313,7 @@ public class ClientMenuHandler {
                                 );
                             }
 
-                            @Override
-                            public void onClick(double mouseX, double mouseY) {
+                            @Override public void onClick(double mouseX, double mouseY) {
                                 if (url != null && !url.isEmpty()) {
                                     try {
                                         Util.getPlatform().openUri(new URI(url));
@@ -278,8 +323,7 @@ public class ClientMenuHandler {
                                 }
                             }
 
-                            @Override
-                            protected void updateWidgetNarration(NarrationElementOutput output) {}
+                            @Override protected void updateWidgetNarration(NarrationElementOutput output) {}
                         });
                     }
                 }
@@ -292,9 +336,7 @@ public class ClientMenuHandler {
         if (event.getScreen() instanceof TitleScreen screen) {
             try {
                 if (!RadlinkConfig.IS_MENU_CHANGE.get()) return;
-            } catch (Exception ignored) {
-                return;
-            }
+            } catch (Exception ignored) { return; }
 
             if (animationFrames.isEmpty()) return;
 
@@ -303,8 +345,8 @@ public class ClientMenuHandler {
             int mouseY = event.getMouseY();
             float partialTick = event.getPartialTick();
 
-            long currentTime = System.currentTimeMillis();
-            if (currentTime - lastFrameTime >= frameDelayMs) {
+            long currentTime = System.nanoTime();
+            if (currentTime - lastFrameTime >= frameDelayNanos) {
                 currentFrameIndex = (currentFrameIndex + 1) % animationFrames.size();
                 lastFrameTime = currentTime;
             }
@@ -355,6 +397,86 @@ public class ClientMenuHandler {
         return defaultValue;
     }
 
+    private static boolean getJsonBool(JsonObject obj, String key1, String key2, boolean defaultValue) {
+        if (obj.has(key1) && obj.get(key1).isJsonPrimitive()) {
+            try {
+                return obj.get(key1).getAsBoolean();
+            } catch (Exception ignored) {}
+        }
+        if (obj.has(key2) && obj.get(key2).isJsonPrimitive()) {
+            try {
+                return obj.get(key2).getAsBoolean();
+            } catch (Exception ignored) {}
+        }
+        return defaultValue;
+    }
+
+    private static boolean shouldDrawButtonText(JsonObject cfg, List<ResourceLocation> normalFrames, List<ResourceLocation> hoverFrames) {
+        boolean hasTexture = cfg.has("texture")
+            || (normalFrames != null && !normalFrames.isEmpty())
+            || (hoverFrames != null && !hoverFrames.isEmpty());
+        return getJsonBool(cfg, "showText", "show_text", !hasTexture);
+    }
+
+    private static List<ResourceLocation> loadButtonFrames(JsonObject cfg, String primaryKey, String secondaryKey, String uniqueKey) {
+        String key = null;
+        if (primaryKey != null && cfg.has(primaryKey) && cfg.get(primaryKey).isJsonArray()) {
+            key = primaryKey;
+        } else if (secondaryKey != null && cfg.has(secondaryKey) && cfg.get(secondaryKey).isJsonArray()) {
+            key = secondaryKey;
+        }
+        if (key == null) return null;
+
+        List<ResourceLocation> frames = new ArrayList<>();
+        int index = 0;
+        for (JsonElement element : cfg.getAsJsonArray(key)) {
+            if (element == null || !element.isJsonPrimitive()) continue;
+            String path = element.getAsString();
+            if (path == null || path.isEmpty()) continue;
+
+            ResourceLocation loc = registerOrGetTexture(activeWorldDir, path, uniqueKey + "_frame" + index);
+            if (loc == null) {
+                loc = new ResourceLocation(path.contains(":") ? path : "radlink:" + path);
+            }
+            frames.add(loc);
+            index++;
+        }
+        return frames.isEmpty() ? null : frames;
+    }
+
+    private static ResourceLocation pickFrame(List<ResourceLocation> frames, List<ResourceLocation> hoverFrames, boolean hovered, int fps) {
+        List<ResourceLocation> list = null;
+        if (hovered && hoverFrames != null && !hoverFrames.isEmpty()) { list = hoverFrames;
+        } else if (frames != null && !frames.isEmpty()) {               list = frames;
+        } else if (hoverFrames != null && !hoverFrames.isEmpty()) {     list = hoverFrames;}
+
+        if (list == null || list.isEmpty()) return null;
+        if (list.size() == 1) return list.get(0);
+
+        long frameDelayNanos = Math.max(1L, 1_000_000_000L / Math.max(1, fps));
+        int index = (int) ((System.nanoTime() / frameDelayNanos) % list.size());
+        return list.get(index);
+    }
+
+    private static int getButtonFps(JsonObject cfg) {
+        if (cfg.has("fps")) {
+            try {
+                return Math.max(1, cfg.get("fps").getAsInt());
+            } catch (Exception ignored) {}
+        }
+        return backgroundFps;
+    }
+
+    private static int textureDefaultWidth(ResourceLocation texture) {
+        int[] size = texture == null ? null : textureSizes.get(texture);
+        return size != null ? size[0] : 480;
+    }
+
+    private static int textureDefaultHeight(ResourceLocation texture) {
+        int[] size = texture == null ? null : textureSizes.get(texture);
+        return size != null ? size[1] : 50;
+    }
+
     private static void parseButtonsConfig(JsonObject rootJson) {
         if (rootJson.has("buttons") && rootJson.get("buttons").isJsonObject()) {
             buttonsConfig = rootJson.getAsJsonObject("buttons");
@@ -362,9 +484,7 @@ public class ClientMenuHandler {
 
         if (rootJson.has("custom_buttons") && rootJson.get("custom_buttons").isJsonArray()) {
             customButtonsJson = rootJson.getAsJsonArray("custom_buttons");
-        } else {
-            customButtonsJson = null;
-        }
+        } else { customButtonsJson = null;}
     }
 
     private static String getButtonIdentifier(AbstractWidget widget) {
@@ -412,6 +532,8 @@ public class ClientMenuHandler {
     private static void loadBackgroundFromWorldConfig() {
         animationFrames.clear();
         activeWorldDir = null;
+        backgroundFps = 10;
+        frameDelayNanos = 100_000_000L;
 
         Path gameDir = Minecraft.getInstance().gameDirectory.toPath();
 
@@ -470,8 +592,8 @@ public class ClientMenuHandler {
                 parseButtonsConfig(json);
 
                 if (json.has("fps")) {
-                    int fps = Math.max(1, json.get("fps").getAsInt());
-                    frameDelayMs = 1000 / fps;
+                    backgroundFps = Math.max(1, json.get("fps").getAsInt());
+                    frameDelayNanos = Math.max(1L, 1_000_000_000L / backgroundFps);
                 }
 
                 if (json.has("frames") && json.get("frames").isJsonArray()) {
@@ -506,17 +628,24 @@ public class ClientMenuHandler {
                 filename = filename.substring(filename.lastIndexOf('/') + 1);
             }
 
-            Path imagePath = worldDir.resolve(filename);
+            Path imagePath = worldDir.resolve(textureStr);
             if (!Files.exists(imagePath)) {
-                imagePath = worldDir.resolve(textureStr);
+                imagePath = worldDir.resolve(filename);
+            }
+            if (!Files.exists(imagePath) && !textureStr.contains("/") && !textureStr.contains("\\")) {
+                imagePath = worldDir.resolve("assets").resolve("radlink").resolve("textures").resolve("gui").resolve(filename);
             }
 
             if (Files.exists(imagePath)) {
                 try (InputStream is = Files.newInputStream(imagePath)) {
                     NativeImage nativeImage = NativeImage.read(is);
+                    int imageWidth = nativeImage.getWidth();
+                    int imageHeight = nativeImage.getHeight();
                     DynamicTexture dynamicTexture = new DynamicTexture(nativeImage);
                     System.out.println("[RadLink] Загружена динамическая текстура: " + imagePath.toAbsolutePath());
-                    return Minecraft.getInstance().getTextureManager().register("radlink_dynamic_" + uniqueKey, dynamicTexture);
+                    ResourceLocation registered = Minecraft.getInstance().getTextureManager().register("radlink_dynamic_" + uniqueKey, dynamicTexture);
+                    textureSizes.put(registered, new int[]{imageWidth, imageHeight});
+                    return registered;
                 } catch (Exception e) {
                     System.err.println("[RadLink] Ошибка чтения PNG: " + e.getMessage());
                 }

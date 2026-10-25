@@ -10,7 +10,6 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +24,7 @@ public class CustomCommandLoader extends SimpleJsonResourceReloadListener {
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> objectMap, ResourceManager resourceManager, ProfilerFiller profiler) {
+    protected void apply(Map<ResourceLocation, JsonElement>objectMap,ResourceManager resourceManager,ProfilerFiller profiler){
         LOADED_COMMANDS.clear();
         objectMap.forEach((location, jsonElement) -> {
             if (jsonElement.isJsonObject()) {

@@ -107,18 +107,21 @@ public class Radlink {
 
         for (CustomDefinitions.CustomItemDefinition itemDefinition : CustomDefinitions.loadItems(worldDataDir)) {
             String itemId = sanitizeId(itemDefinition.id());
-            CUSTOM_ITEMS.add(ITEMS.register(itemId,
-                () -> new CustomItem(itemId, itemDefinition.name(), itemDefinition.maxStackSize(),
-                    itemDefinition.trigger(), itemDefinition.ifCondition(), itemDefinition.thenActions(),
-                    itemDefinition.lore())));
+            CUSTOM_ITEMS.add(ITEMS.register(itemId, () -> createCustomItem(itemId, itemDefinition)));
         }
 
         for (CustomDefinitions.CustomArmorDefinition armorDef : CustomDefinitions.loadArmors(worldDataDir)) {
             String armorId = sanitizeId(armorDef.id());
-            ArmorItem.Type type = parseArmorType(armorDef.slot());
-            ArmorMaterial material = createArmorMaterial(armorDef.material(), armorDef.durability());
-            String armorTexture = armorDef.texture();
-            ITEMS.register(armorId, () -> new CustomArmorItem(armorId, material, type, armorDef.maxStackSize(), armorTexture, armorDef.lore()));
+            if (isHorseArmorSlot(armorDef.slot())) {
+                ITEMS.register(armorId, () -> new CustomHorseArmorItem(armorId, armorDef.protection(),
+                    armorDef.maxStackSize(), armorDef.horseTexture(), armorDef.lore()));
+            } else {
+                ArmorItem.Type type = parseArmorType(armorDef.slot());
+                ArmorMaterial material = createArmorMaterial(armorDef.material(), armorDef.durability(), armorDef.defense());
+                String armorTexture = armorDef.texture();
+                ITEMS.register(armorId, () -> new CustomArmorItem(armorId, material, type,
+                    armorDef.maxStackSize(), armorTexture, armorDef.lore()));
+            }
         }
 
         for (CustomDefinitions.CustomBlockDefinition blockDefinition : CustomDefinitions.loadBlocks(worldDataDir)) {
@@ -196,27 +199,48 @@ public class Radlink {
     public static CustomDefinitions.CustomScriptDefinition getScriptForElement(String elementId) {
         if (elementId == null) return null;
 
+        CustomDefinitions.CustomScriptDefinition globalScript = getGlobalScriptForElement(elementId);
+        if (globalScript != null) {
+            return globalScript;
+        }
+
+        return getItemScriptForElement(elementId);
+    }
+
+    public static CustomDefinitions.CustomScriptDefinition getGlobalScriptForElement(String elementId) {
+        if (elementId == null) return null;
+
         Path worldDataDir = resolveWorldDataDir();
         if (worldDataDir == null) return null;
 
         String cleanId = elementId.contains(":") ? elementId.substring(elementId.indexOf(":") + 1) : elementId;
-
         for (CustomDefinitions.CustomScriptDefinition script : CustomDefinitions.loadScripts(worldDataDir)) {
             if (script.id() != null && (cleanId.equalsIgnoreCase(script.id()) || elementId.equalsIgnoreCase(script.id()))) {
                 return script;
             }
         }
 
+        return null;
+    }
+
+    public static CustomDefinitions.CustomScriptDefinition getItemScriptForElement(String elementId) {
+        if (elementId == null) return null;
+
+        Path worldDataDir = resolveWorldDataDir();
+        if (worldDataDir == null) return null;
+
+        String cleanId = elementId.contains(":") ? elementId.substring(elementId.indexOf(":") + 1) : elementId;
         for (CustomDefinitions.CustomItemDefinition item : CustomDefinitions.loadItems(worldDataDir)) {
             if (item.id() != null && (cleanId.equalsIgnoreCase(item.id()) || elementId.equalsIgnoreCase(item.id()))) {
-                if (item.trigger() != null) {
-                    return new CustomDefinitions.CustomScriptDefinition(
-                        item.id(),
-                        item.trigger(),
-                        item.ifCondition(),
-                        item.thenActions()
-                    );
+                if (item.trigger() == null) {
+                    return null;
                 }
+                return new CustomDefinitions.CustomScriptDefinition(
+                    item.id(),
+                    item.trigger(),
+                    item.ifCondition(),
+                    item.thenActions()
+                );
             }
         }
 
@@ -276,6 +300,7 @@ public class Radlink {
             Path blockModelsDir = assetsDir.resolve("models").resolve("block");
             Path texturesItemDir = assetsDir.resolve("textures").resolve("item");
             Path texturesBlockDir = assetsDir.resolve("textures").resolve("block");
+            Path texturesHorseArmorDir = assetsDir.resolve("textures").resolve("entity").resolve("horse").resolve("armor");
             Path blockStatesDir = assetsDir.resolve("blockstates");
             Path langDir = assetsDir.resolve("lang");
 
@@ -283,6 +308,7 @@ public class Radlink {
             Files.createDirectories(blockModelsDir);
             Files.createDirectories(texturesItemDir);
             Files.createDirectories(texturesBlockDir);
+            Files.createDirectories(texturesHorseArmorDir);
             Files.createDirectories(blockStatesDir);
             Files.createDirectories(langDir);
 
@@ -459,21 +485,45 @@ public class Radlink {
         return id.trim().toLowerCase().replace(' ', '_').replaceAll("[^a-z0-9_]", "");
     }
 
+    private static Item createCustomItem(String itemId, CustomDefinitions.CustomItemDefinition definition) {
+        String slot = definition.slot();
+        if (slot == null || slot.isBlank()) {
+            return new CustomItem(itemId, definition.name(), definition.maxStackSize(),
+                definition.trigger(), definition.ifCondition(), definition.lore());
+        }
+        if (isHorseArmorSlot(slot)) {
+            return new CustomHorseArmorItem(itemId, definition.protection(), definition.maxStackSize(),
+                definition.horseTexture(), definition.lore());
+        }
+        return new CustomArmorItem(itemId, createArmorMaterial(definition.material(), definition.durability(), definition.defense()),
+            parseArmorType(slot), definition.maxStackSize(), definition.texture(), definition.lore());
+    }
+
+    private static boolean isHorseArmorSlot(String slot) {
+        if (slot == null) return false;
+        String normalized = slot.trim().toLowerCase();
+        return normalized.equals("horse") || normalized.equals("horse_armor") || normalized.equals("horsearmor");
+    }
+
     private static ArmorItem.Type parseArmorType(String slot) {
-        if (slot == null) return ArmorItem.Type.HELMET;
-        switch (slot.toLowerCase()) {
-            case "head": return ArmorItem.Type.HELMET;
-            case "chest": return ArmorItem.Type.CHESTPLATE;
-            case "legs": case "leggings": return ArmorItem.Type.LEGGINGS;
-            case "feet": return ArmorItem.Type.BOOTS;
-            default: return ArmorItem.Type.HELMET;
+        if (slot == null || slot.isBlank()) {
+            return ArmorItem.Type.HELMET;
+        }
+        switch (slot.trim().toLowerCase()) {
+            case "head": case "helmet": return ArmorItem.Type.HELMET;
+            case "chest": case "chestplate": return ArmorItem.Type.CHESTPLATE;
+            case "legs": case "leg": case "leggings": return ArmorItem.Type.LEGGINGS;
+            case "feet": case "foot": case "boots": return ArmorItem.Type.BOOTS;
+            default:
+                throw new IllegalArgumentException("Unsupported custom armor slot: " + slot
+                    + ". Use head, chest, legs, feet, or horse.");
         }
     }
 
-    private static net.minecraft.world.item.ArmorMaterial createArmorMaterial(String material, int durability) {
+    private static net.minecraft.world.item.ArmorMaterial createArmorMaterial(String material, int durability, Integer defense) {
         ArmorMaterials base = parseArmorMaterial(material);
-        if (durability <= 0) {return base;}
-        return new CustomArmorMaterial(base, durability);
+        if (durability <= 0 && defense == null) return base;
+        return new CustomArmorMaterial(base, durability, defense);
     }
 
     private static ArmorMaterials parseArmorMaterial(String material) {

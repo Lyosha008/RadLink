@@ -18,8 +18,8 @@ import java.util.List;
 public final class CustomDefinitions {
     private static final Gson GSON = new Gson();
     private static final Type ITEM_TYPE = new TypeToken<List<CustomItemDefinition>>() {}.getType();
-    private static final Type BLOCK_TYPE = new TypeToken<List<CustomBlockDefinition>>() {}.getType();
-    private static final Type ARMOR_TYPE = new TypeToken<List<CustomArmorDefinition>>() {}.getType();
+    private static final Type BLOCK_TYPE=new TypeToken<List<CustomBlockDefinition>>() {}.getType();
+    private static final Type ARMOR_TYPE=new TypeToken<List<CustomArmorDefinition>>() {}.getType();
 
     private CustomDefinitions() {}
 
@@ -90,6 +90,10 @@ public final class CustomDefinitions {
         String texture,
         String slot,
         String material,
+        int durability,
+        Integer defense,
+        int protection,
+        String horseTexture,
         JsonArray lore) {
     }
 
@@ -110,6 +114,9 @@ public final class CustomDefinitions {
         String material,
         String texture,
         int durability,
+        Integer defense,
+        int protection,
+        String horseTexture,
         JsonArray lore) {
     }
 

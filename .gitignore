@@ -1,34 +1,26 @@
-# Скомпилированные файлы и кэш
 .gradle/
 build/
 bin/
 run/
 run-data/
 
-# Настройки IDE (IntelliJ IDEA)
 .idea/
 *.iml
 *.iws
 *.ipr
 out/
 
-# Логи и Временные файлы
 *.log
 .DS_Store
 
-# --- Дополнительно для Minecraft / Forge / Gradle ---
-# Сохранения и логи из рабочей директории
 run/*
 !run/config/
 
-# Закомпилированные джарники и архивы
 *.jar
 *.war
 *.ear
 *.zip
 
-# Локальные свойства Gradle (где хранятся токены и ключи API)
 local.properties
 
-# Временные файлы ОС
 Thumbs.db

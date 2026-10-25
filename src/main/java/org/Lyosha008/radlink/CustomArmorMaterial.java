@@ -8,20 +8,22 @@ import net.minecraft.world.item.crafting.Ingredient;
 public class CustomArmorMaterial implements net.minecraft.world.item.ArmorMaterial {
     private final ArmorMaterials base;
     private final int durability;
+    private final Integer defense;
 
-    public CustomArmorMaterial(ArmorMaterials base, int durability) {
+    public CustomArmorMaterial(ArmorMaterials base, int durability, Integer defense) {
         this.base = base;
-        this.durability = Math.max(durability, 1);
+        this.durability = durability;
+        this.defense = defense;
     }
 
     @Override
     public int getDurabilityForType(ArmorItem.Type type) {
-        return durability;
+        return durability > 0 ? durability : base.getDurabilityForType(type);
     }
 
     @Override
     public int getDefenseForType(ArmorItem.Type type) {
-        return base.getDefenseForType(type);
+        return defense != null ? Math.max(0, defense) : base.getDefenseForType(type);
     }
 
     @Override

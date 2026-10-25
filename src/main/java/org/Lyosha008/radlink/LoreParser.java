@@ -64,9 +64,7 @@ public class LoreParser {
                             }
                         }
 
-                        if (!lineComponent.getString().isEmpty()) {
-                            tooltip.add(lineComponent);
-                        }
+                        if (!lineComponent.getString().isEmpty()) {tooltip.add(lineComponent);}
                     } else if (textElem.isJsonPrimitive()) {
                         tooltip.add(Component.literal(textElem.getAsString()));
                     }
@@ -76,10 +74,7 @@ public class LoreParser {
     }
 
     private static ChatFormatting parseColor(String colorName) {
-        try {
-            return ChatFormatting.valueOf(colorName.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return ChatFormatting.WHITE;
-        }
+        try {return ChatFormatting.valueOf(colorName.toUpperCase());
+        } catch (IllegalArgumentException e) {return ChatFormatting.WHITE;}
     }
 }

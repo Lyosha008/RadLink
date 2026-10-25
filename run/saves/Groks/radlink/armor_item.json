@@ -6,6 +6,7 @@
     "slot": "head",
     "material": "chainmail",
     "durability": 800,
+    "defense": 2,
     "texture": "radlink:item/respirator",
     "lore": [
       {
@@ -22,5 +23,15 @@
         ]
       }
     ]
+  },
+  {
+    "id": "Bulletproof vest",
+    "name": "Bulletproof vest",
+    "maxStackSize": 1,
+    "slot": "chest",
+    "material": "iron",
+    "durability": 800,
+    "defense": 6,
+    "texture": "radlink:item/bulletproof_vest"
   }
 ]

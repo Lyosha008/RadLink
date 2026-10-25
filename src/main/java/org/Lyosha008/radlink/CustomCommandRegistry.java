@@ -16,7 +16,6 @@ public class CustomCommandRegistry {
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
 
-        // 1. Команда перезагрузки
         dispatcher.register(
             Commands.literal("radlink")
                 .requires(source -> source.hasPermission(2))
@@ -33,7 +32,6 @@ public class CustomCommandRegistry {
                 )
         );
 
-        // 2. Регистрация кастомных команд из JSON
         CustomCommandLoader.LOADED_COMMANDS.forEach((commandName, json) -> {
             int permLevel = json.has("permission_level") ? json.get("permission_level").getAsInt() : 0;
 
@@ -43,7 +41,6 @@ public class CustomCommandRegistry {
                     .executes(context -> {
                         CommandSourceStack source = context.getSource();
 
-                        // Передаем actions прямо в ваш ScriptEngine
                         if (json.has("actions")) {
                             ScriptEngine.executeActions(
                                 json.get("actions"),

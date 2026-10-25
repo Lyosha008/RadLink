@@ -76,11 +76,7 @@ public class ScriptEngine {
             if (ifObj == null) continue;
 
             JsonObject nestedIf = null;
-            if (ifObj.has("If") && ifObj.get("If").isJsonObject()) {
-                nestedIf = ifObj.getAsJsonObject("If");
-            } else if (ifObj.has("iF") && ifObj.get("iF").isJsonObject()) {
-                nestedIf = ifObj.getAsJsonObject("iF");
-            }
+            if (ifObj.has("If") && ifObj.get("If").isJsonObject()) nestedIf = ifObj.getAsJsonObject("If");
 
             if (nestedIf != null && checkNestedCondition(nestedIf, level, pos, player, source)) {
                 executeActions(script.thenActions(), level, pos, player);
@@ -94,9 +90,7 @@ public class ScriptEngine {
             if (orObj instanceof List<?> list) {
                 for (Object item : list) {
                     if (item instanceof Map<?, ?> subCond) {
-                        if (evaluateCondition((Map<String, Object>) subCond, player)) {
-                            return true;
-                        }
+                        if (evaluateCondition((Map<String, Object>) subCond, player)) return true;
                     }
                 }
                 return false;
@@ -121,19 +115,20 @@ public class ScriptEngine {
         return false;
     }
 
-    private static boolean checkNestedCondition(JsonObject varCheck,ServerLevel level,BlockPos pos,Entity entity,DamageSource damageSource) {
+    private static boolean checkNestedCondition(JsonObject varCheck, ServerLevel level, BlockPos pos,Entity entity,
+                                                                                    DamageSource damageSource) {
         if (damageSource != null && varCheck.has("entity")) {
             JsonElement entElem = varCheck.get("entity");
             if (entElem.isJsonArray()) {
                 for (JsonElement elem : entElem.getAsJsonArray()) {
                     if (elem.isJsonObject() && checkDeathCondition(elem.getAsJsonObject(), entity, damageSource)) {
-                        return checkNestedCondition(varCheck, level, pos, entity);
+                        return checkNestedCondition(varCheck, level, pos, entity, damageSource);
                     }
                 }
                 return false;
             }
         }
-        return checkNestedCondition(varCheck, level, pos, entity);
+        return checkNestedCondition(varCheck, level, pos, entity, damageSource);
     }
 
     private static boolean checkDeathCondition(JsonObject entityCondition, Entity entity, DamageSource damageSource) {
@@ -210,7 +205,7 @@ public class ScriptEngine {
         if (level == null || pos == null) return;
 
         Map<String, Object> vars = Radlink.loadWorldVariables();
-        String posSuffix = "_" + level.dimension().location().getPath() + "_" + pos.getX() + "_" + pos.getY() + "_" + pos.getZ();
+        String posSuffix = "_" + level.dimension().location().getPath()+"_"+pos.getX()+"_"+pos.getY() +"_"+pos.getZ();
 
         boolean changed = vars.keySet().removeIf(key -> key.endsWith(posSuffix));
 
@@ -223,11 +218,7 @@ public class ScriptEngine {
         if (ifObj == null) return false;
 
         JsonObject nestedIf = null;
-        if (ifObj.has("If") && ifObj.get("If").isJsonObject()) {
-            nestedIf = ifObj.getAsJsonObject("If");
-        } else if (ifObj.has("iF") && ifObj.get("iF").isJsonObject()) {
-            nestedIf = ifObj.getAsJsonObject("iF");
-        }
+        if (ifObj.has("If") && ifObj.get("If").isJsonObject()) nestedIf = ifObj.getAsJsonObject("If");
 
         if (nestedIf != null) {
             if (nestedIf.has("entity")) {
@@ -292,8 +283,10 @@ public class ScriptEngine {
                         BlockState state = chunk.getBlockState(pos);
                         ResourceLocation loc = BuiltInRegistries.BLOCK.getKey(state.getBlock());
 
-                        if (loc.toString().equalsIgnoreCase(targetBlockId) || loc.getPath().equalsIgnoreCase(targetBlockId)) {
-                            if (checkConditions(ifObj, state, level, pos, null)) executeActions(script.thenActions(), level, pos, null);
+                        if (loc.toString().equalsIgnoreCase(targetBlockId) ||
+                                                                        loc.getPath().equalsIgnoreCase(targetBlockId)) {
+                            if (checkConditions(ifObj,state,level,pos,null)) executeActions(
+                                                                                   script.thenActions(),level,pos,null);
                         }
                     }
                 }
@@ -301,7 +294,8 @@ public class ScriptEngine {
         }
     }
 
-    public static boolean checkConditions(JsonObject ifObj, BlockState state, ServerLevel level, BlockPos pos, Entity entity) {
+    public static boolean checkConditions(JsonObject ifObj, BlockState state,ServerLevel level,
+                                                                                    BlockPos pos,Entity entity) {
         if (ifObj.has("timeCycles") && ifObj.get("timeCycles").isJsonObject()) {
             JsonObject tc = ifObj.getAsJsonObject("timeCycles");
             if (tc.has("now") && "isNewDay".equalsIgnoreCase(tc.get("now").getAsString())) {
@@ -370,7 +364,7 @@ public class ScriptEngine {
             for (Map.Entry<String, JsonElement> entry : ifObj.entrySet()) {
                 String key = entry.getKey();
                 if (key.equalsIgnoreCase("block") || key.equalsIgnoreCase("who") || key.equalsIgnoreCase("If") ||
-                    key.equalsIgnoreCase("iF") || key.equalsIgnoreCase("timeCycles") || key.equalsIgnoreCase("query") ||
+                    key.equalsIgnoreCase("timeCycles") || key.equalsIgnoreCase("query") ||
                     key.equalsIgnoreCase("lit")) continue;
 
                 Property<?> property = state.getBlock().getStateDefinition().getProperty(key);
@@ -378,8 +372,8 @@ public class ScriptEngine {
                     String actualVal = state.getValue(property).toString();
                     if (entry.getValue().isJsonObject()) {
                         JsonObject compObj = entry.getValue().getAsJsonObject();
-                        if (compObj.has("==") && !actualVal.equalsIgnoreCase(compObj.get("==").getAsString())) return false;
-                        if (compObj.has("!=") && actualVal.equalsIgnoreCase(compObj.get("!=").getAsString())) return false;
+                       if (compObj.has("==")&&!actualVal.equalsIgnoreCase(compObj.get("==").getAsString()))return false;
+                       if (compObj.has("!=")&&actualVal.equalsIgnoreCase(compObj.get("!=").getAsString())) return false;
                     } else {
                         String expectedVal = entry.getValue().getAsString();
                         if (!actualVal.equalsIgnoreCase(expectedVal)) {
@@ -391,17 +385,9 @@ public class ScriptEngine {
         }
 
         JsonObject nestedIf = null;
-        if (ifObj.has("If") && ifObj.get("If").isJsonObject()) {
-            nestedIf = ifObj.getAsJsonObject("If");
-        } else if (ifObj.has("iF") && ifObj.get("iF").isJsonObject()) {
-            nestedIf = ifObj.getAsJsonObject("iF");
-        }
+        if (ifObj.has("If") && ifObj.get("If").isJsonObject()) nestedIf = ifObj.getAsJsonObject("If");
 
-        if (nestedIf != null) {
-            if (!checkNestedCondition(nestedIf, level, pos, entity)) {
-                return false;
-            }
-        }
+        if (nestedIf != null) if (!checkNestedCondition(nestedIf, level, pos, entity)) return false;
 
         return true;
     }
@@ -426,7 +412,6 @@ public class ScriptEngine {
     private static void executeSingleAction(JsonObject thenObj, ServerLevel level, BlockPos pos, Entity entity) {
         JsonObject ifPart = null;
         if (thenObj.has("If") && thenObj.get("If").isJsonObject()) ifPart = thenObj.getAsJsonObject("If");
-        else if (thenObj.has("iF") && thenObj.get("iF").isJsonObject()) ifPart = thenObj.getAsJsonObject("iF");
 
         if (ifPart != null && thenObj.has("Then")) {
             if (checkNestedCondition(ifPart, level, pos, entity)) {
@@ -443,7 +428,6 @@ public class ScriptEngine {
 
                 JsonObject caseIf = null;
                 if (caseItem.has("If") && caseItem.get("If").isJsonObject()) caseIf = caseItem.getAsJsonObject("If");
-                else if (caseItem.has("iF") && caseItem.get("iF").isJsonObject()) caseIf = caseItem.getAsJsonObject("iF");
 
                 if (caseIf != null && caseItem.has("Then")) {
                     if (checkNestedCondition(caseIf, level, pos, entity)) {
@@ -490,7 +474,8 @@ public class ScriptEngine {
 
             if (soundEvent != null && level != null) {
                 if (entity != null) {
-                    level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), soundEvent, SoundSource.PLAYERS, volume, pitch);
+                    level.playSound(null,entity.getX(),entity.getY(),entity.getZ(),
+                                                                           soundEvent,SoundSource.PLAYERS,volume,pitch);
                 } else if (pos != null) {
                     level.playSound(null, pos, soundEvent, SoundSource.BLOCKS, volume, pitch);
                 }
@@ -587,7 +572,8 @@ public class ScriptEngine {
                 for (int i = 0; i < count; i++) {
                     Entity spawned = entityType.create(serverLevel);
                     if (spawned != null) {
-                        spawned.moveTo(livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(),livingEntity.getYRot(),livingEntity.getXRot());
+                        spawned.moveTo(livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(),
+                                                    livingEntity.getYRot(),livingEntity.getXRot());
                         serverLevel.addFreshEntity(spawned);
                     }
                 }
@@ -609,7 +595,6 @@ public class ScriptEngine {
 
         if (thenObj.has("particle") && thenObj.get("particle").isJsonObject()) {
             JsonObject particleObj = thenObj.getAsJsonObject("particle");
-
             String typeStr = particleObj.has("type") ? particleObj.get("type").getAsString() : "minecraft:smoke";
             int count = particleObj.has("count") ? particleObj.get("count").getAsInt() : 1;
             double speed = particleObj.has("speed") ? particleObj.get("speed").getAsDouble() : 0.1;
@@ -646,14 +631,11 @@ public class ScriptEngine {
         if (thenObj.has("message")) {
             String rawText = thenObj.get("message").getAsString();
             String formattedText = formatTextWithVariables(rawText, level, pos, entity);
-
-            for (ServerPlayer player : level.players()) {
-                player.sendSystemMessage(Component.literal(formattedText));
-            }
+            for (ServerPlayer player : level.players()) player.sendSystemMessage(Component.literal(formattedText));
         }
     }
 
-    private static void executeTeleportAction(JsonObject tpObj, ServerLevel level, BlockPos basePos, Entity entity) {
+    private static void executeTeleportAction(JsonObject tpObj,ServerLevel level,BlockPos basePos,Entity entity) {
         if (entity == null || level == null) return;
 
         final double backX = entity.getX();
@@ -663,7 +645,6 @@ public class ScriptEngine {
         final float backPitch = entity.getXRot();
         final ResourceKey<Level> backDimension = level.dimension();
         final java.util.UUID entityUUID = entity.getUUID();
-
         double tpX = backX;
         double tpY = backY;
         double tpZ = backZ;
@@ -676,9 +657,7 @@ public class ScriptEngine {
                 if (!mElem.isJsonObject()) continue;
                 JsonObject mObj = mElem.getAsJsonObject();
 
-                if (mObj.has("mode_type")) {
-                    modeType = mObj.get("mode_type").getAsString();
-                }
+                if (mObj.has("mode_type")) modeType = mObj.get("mode_type").getAsString();
                 if (mObj.has("coordinates") && mObj.get("coordinates").isJsonArray()) {
                     JsonArray coordsArr = mObj.getAsJsonArray("coordinates");
                     if (coordsArr.size() >= 3) {
@@ -687,9 +666,7 @@ public class ScriptEngine {
                         tpZ = parseStructuredCoordinate(coordsArr.get(2), backZ);
                     }
                 }
-                if (mObj.has("return_delay_ticks")) {
-                    returnDelayTicks = mObj.get("return_delay_ticks").getAsInt();
-                }
+                if (mObj.has("return_delay_ticks")) returnDelayTicks = mObj.get("return_delay_ticks").getAsInt();
             }
         }
 
@@ -697,28 +674,22 @@ public class ScriptEngine {
 
         if ("revive_teleport".equalsIgnoreCase(modeType)) {
             if (entity instanceof ServerPlayer player) {
-                if (player.isSpectator()) {
-                    player.setGameMode(GameType.SURVIVAL);
-                }
+                if (player.isSpectator()) player.setGameMode(GameType.SURVIVAL);
                 player.setHealth(player.getMaxHealth());
             } else if (entity instanceof LivingEntity living) {
                 living.deathTime = 0;
                 living.setHealth(living.getMaxHealth());
-            } else if (entity instanceof ItemEntity item) {
-                item.setPickUpDelay(0);
-            }
+            } else if (entity instanceof ItemEntity item) item.setPickUpDelay(0);
             entity.clearFire();
 
-            if (returnDelayTicks > 0) {
-                shouldReturn = true;
-            }
+            if (returnDelayTicks > 0) shouldReturn = true;
         }
 
-        if (shouldReturn) WorldTickHandler.scheduleReturn(entityUUID,backDimension,backX,backY,backZ,backYaw,backPitch,returnDelayTicks);
+        if (shouldReturn) WorldTickHandler.scheduleReturn(entityUUID,backDimension,
+                                                                  backX,backY,backZ,backYaw,backPitch,returnDelayTicks);
 
-        if (entity instanceof ServerPlayer player) { player.teleportTo(level,tpX,tpY,tpZ,entity.getYRot(),entity.getXRot());
-        } else {entity.teleportTo(tpX, tpY, tpZ);
-        }
+       if (entity instanceof ServerPlayer player)player.teleportTo(level,tpX,tpY,tpZ,entity.getYRot(),entity.getXRot());
+       else entity.teleportTo(tpX, tpY, tpZ);
     }
 
     private static double parseStructuredCoordinate(JsonElement elem, double currentVal) {
@@ -732,9 +703,7 @@ public class ScriptEngine {
                 }
             }
         }
-        if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isNumber()) {
-            return Math.floor(elem.getAsDouble()) + 0.5;
-        }
+        if (elem.isJsonPrimitive() && elem.getAsJsonPrimitive().isNumber()) return Math.floor(elem.getAsDouble()) + 0.5;
         try {
             return Math.floor(Double.parseDouble(elem.getAsString())) + 0.5;
         } catch (NumberFormatException e) {
@@ -742,7 +711,7 @@ public class ScriptEngine {
         }
     }
 
-    private static void executeSetBlockAction(JsonObject setObj, ServerLevel level, BlockPos basePos, Entity entity) {
+    private static void executeSetBlockAction(JsonObject setObj,ServerLevel level,BlockPos basePos,Entity entity) {
         String modeType = "set_block";
         BlockPos originPos = (entity != null) ? entity.blockPosition() : basePos;
         BlockPos pos1 = originPos;
@@ -789,7 +758,8 @@ public class ScriptEngine {
 
         if (setObj.has("block") && level != null) {
             String blockId = setObj.get("block").getAsString();
-            ResourceLocation loc = blockId.contains(":") ? new ResourceLocation(blockId) : new ResourceLocation("minecraft", blockId);
+            ResourceLocation loc = blockId.contains(":") ? new ResourceLocation(blockId) :
+                                                                             new ResourceLocation("minecraft", blockId);
             Block newBlock = BuiltInRegistries.BLOCK.get(loc);
 
             if (newBlock != null) {
@@ -813,7 +783,8 @@ public class ScriptEngine {
                                 String currentPath = currentLoc.getPath();
                                 String currentFull = currentLoc.toString();
 
-                                if (!currentFull.equalsIgnoreCase(filterBlockId) && !currentPath.equalsIgnoreCase(filterBlockId)) continue;
+                                if (!currentFull.equalsIgnoreCase(filterBlockId) &&
+                                                                !currentPath.equalsIgnoreCase(filterBlockId)) continue;
                             }
 
                             if ("destroy".equals(actionType)) {
@@ -866,10 +837,7 @@ public class ScriptEngine {
         if (level == null) return false;
 
         long currentTick = level.getGameTime();
-
-        if (currentTick == lastProcessedTick) {
-            return isNewDayThisTick;
-        }
+        if (currentTick == lastProcessedTick) return isNewDayThisTick;
 
         lastProcessedTick = currentTick;
         long currentDay = level.getDayTime() / 24000L;
@@ -905,7 +873,7 @@ public class ScriptEngine {
         return defaultValue;
     }
 
-    public static boolean checkNestedCondition(JsonObject varCheck, ServerLevel level, BlockPos pos, Entity entity) {
+    public static boolean checkNestedCondition(JsonObject varCheck,ServerLevel level,BlockPos pos,Entity entity){
         if (varCheck.has("timeCycles") && varCheck.get("timeCycles").isJsonObject()) {
             JsonObject tc = varCheck.getAsJsonObject("timeCycles");
             if (tc.has("now") && "isNewDay".equalsIgnoreCase(tc.get("now").getAsString())) {
@@ -954,21 +922,25 @@ public class ScriptEngine {
                     else if (blockCheck.has("==")) expected = blockCheck.get("==").getAsString();
 
                     if (expected != null) {
-                        boolean isLightning = (entity != null && "lightning_bolt".equalsIgnoreCase(EntityType.getKey(entity.getType()).getPath()));
+                        boolean isLightning = (entity != null && "lightning_bolt"
+                                                      .equalsIgnoreCase(EntityType.getKey(entity.getType()).getPath()));
 
                         BlockState state = level.getBlockState(targetPos);
                         ResourceLocation loc = BuiltInRegistries.BLOCK.getKey(state.getBlock());
-                        boolean matches = loc.getPath().equalsIgnoreCase(expected) || loc.toString().equalsIgnoreCase(expected);
+                        boolean matches = loc.getPath().equalsIgnoreCase(expected) ||
+                                                                              loc.toString().equalsIgnoreCase(expected);
 
                         if (!matches && isLightning) {
                             BlockState stateBelow = level.getBlockState(targetPos.below());
                             ResourceLocation locBelow = BuiltInRegistries.BLOCK.getKey(stateBelow.getBlock());
-                            matches = locBelow.getPath().equalsIgnoreCase(expected) || locBelow.toString().equalsIgnoreCase(expected);
+                            matches = locBelow.getPath().equalsIgnoreCase(expected) ||
+                                                                         locBelow.toString().equalsIgnoreCase(expected);
 
                             if (!matches) {
                                 BlockState stateAbove = level.getBlockState(targetPos.above());
                                 ResourceLocation locAbove = BuiltInRegistries.BLOCK.getKey(stateAbove.getBlock());
-                                matches = locAbove.getPath().equalsIgnoreCase(expected) || locAbove.toString().equalsIgnoreCase(expected);
+                                matches = locAbove.getPath().equalsIgnoreCase(expected) ||
+                                                                         locAbove.toString().equalsIgnoreCase(expected);
                             }
                         }
 
@@ -1040,12 +1012,12 @@ public class ScriptEngine {
             Map<String, Object> vars = Radlink.loadWorldVariables();
             double currentValue = parseDouble(vars.getOrDefault(varName, 0.0));
 
-            if (varCheck.has(">") && currentValue <= parseValueOrVar(varCheck.get(">"), level, pos, entity)) return false;
-            if (varCheck.has(">=") && currentValue < parseValueOrVar(varCheck.get(">="), level, pos, entity)) return false;
-            if (varCheck.has("<") && currentValue >= parseValueOrVar(varCheck.get("<"), level, pos, entity)) return false;
-            if (varCheck.has("<=") && currentValue > parseValueOrVar(varCheck.get("<="), level, pos, entity)) return false;
-            if (varCheck.has("==") && !evalComparison(currentValue, varCheck.get("=="), level, pos, entity)) return false;
-            if (varCheck.has("!=") && evalComparison(currentValue, varCheck.get("!="), level, pos, entity)) return false;
+            if (varCheck.has(">") &&currentValue <= parseValueOrVar(varCheck.get(">"), level,pos, entity)) return false;
+            if (varCheck.has(">=")&&currentValue < parseValueOrVar(varCheck.get(">="), level,pos, entity)) return false;
+            if (varCheck.has("<") &&currentValue >= parseValueOrVar(varCheck.get("<"), level,pos, entity)) return false;
+            if (varCheck.has("<=")&&currentValue > parseValueOrVar(varCheck.get("<="), level,pos, entity)) return false;
+            if (varCheck.has("==")&& !evalComparison(currentValue, varCheck.get("=="), level,pos, entity)) return false;
+            if (varCheck.has("!=") && evalComparison(currentValue, varCheck.get("!="), level,pos, entity)) return false;
         }
 
         return true;
@@ -1092,7 +1064,7 @@ public class ScriptEngine {
         return evalComparison(evaluatedValue, secondElem, level, pos, entity);
     }
 
-    private static boolean evalComparison(double val, JsonElement rule, ServerLevel level, BlockPos pos, Entity entity) {
+    private static boolean evalComparison(double val, JsonElement rule, ServerLevel level,BlockPos pos,Entity entity) {
         if (rule.isJsonArray()) {
             double from = Double.NEGATIVE_INFINITY;
             double to = Double.POSITIVE_INFINITY;
@@ -1106,23 +1078,18 @@ public class ScriptEngine {
             return val >= from && val <= to;
         } else if (rule.isJsonObject()) {
             JsonObject obj = rule.getAsJsonObject();
-            if (obj.has(">=")) if (val < parseValueOrVar(obj.get(">="), level, pos, entity)) return false;
+            if (obj.has(">="))if (val < parseValueOrVar(obj.get(">="), level, pos, entity)) return false;
             if (obj.has(">")) if (val <= parseValueOrVar(obj.get(">"), level, pos, entity)) return false;
-            if (obj.has("<=")) if (val > parseValueOrVar(obj.get("<="), level, pos, entity)) return false;
+            if (obj.has("<="))if (val > parseValueOrVar(obj.get("<="), level, pos, entity)) return false;
             if (obj.has("<")) if (val >= parseValueOrVar(obj.get("<"), level, pos, entity)) return false;
             if (obj.has("==")) {
                 JsonElement eqElem = obj.get("==");
-                if (eqElem.isJsonArray()) {
-                    if (!evalComparison(val, eqElem, level, pos, entity)) return false;
-                } else {
-                    if (val != parseValueOrVar(eqElem, level, pos, entity)) return false;
-                }
+                if (eqElem.isJsonArray()) if (!evalComparison(val, eqElem, level, pos, entity)) return false;
+                else if (val != parseValueOrVar(eqElem, level, pos, entity)) return false;
             }
             if (obj.has("!=")) if (val == parseValueOrVar(obj.get("!="), level, pos, entity)) return false;
             return true;
-        } else {
-            return val == parseValueOrVar(rule, level, pos, entity);
-        }
+        } else return val == parseValueOrVar(rule, level, pos, entity);
     }
 
     public static String resolveVarName(String rawVar, Level level, BlockPos pos) {
@@ -1133,16 +1100,11 @@ public class ScriptEngine {
         if (rawVar == null) return "";
         String varName = rawVar.replace("${", "").replace("}", "");
 
-        if (varName.startsWith("global_")) {
-            return varName;
-        }
-
-        if (entity != null) {
-            return varName + "_" + entity.getUUID().toString();
-        }
+        if (varName.startsWith("global_")) return varName;
+        if (entity != null) return varName + "_" + entity.getUUID().toString();
 
         if (level != null && pos != null) {
-            return varName + "_" + level.dimension().location().getPath() + "_" + pos.getX() + "_" + pos.getY() + "_" + pos.getZ();
+            return varName+"_"+level.dimension().location().getPath()+"_"+pos.getX()+"_"+pos.getY() + "_" + pos.getZ();
         }
 
         return varName;
