@@ -18,13 +18,22 @@ import java.util.List;
 
 public class CustomItem extends Item {
     private final String id;
+    private final boolean food;
     private final String trigger;
     private final JsonObject ifCondition;
     private final JsonArray lore;
 
-    public CustomItem(String id, String name, int maxStackSize, String trigger, JsonObject ifCondition, JsonArray lore) {
-        super(new Item.Properties().stacksTo(maxStackSize));
+    public CustomItem(
+        String id,
+        Item.Properties properties,
+        boolean food,
+        String trigger,
+        JsonObject ifCondition,
+        JsonArray lore
+    ) {
+        super(properties);
         this.id = id;
+        this.food = food;
         this.trigger = trigger;
         this.ifCondition = ifCondition;
         this.lore = lore;
@@ -41,8 +50,11 @@ public class CustomItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack itemStack = player.getItemInHand(hand);
+        if (food || trigger == null || !"right_click".equalsIgnoreCase(trigger.trim())) {
+            return super.use(level, player, hand);
+        }
+
         if (level.isClientSide || !(level instanceof ServerLevel serverLevel)
-            || trigger == null || !"right_click".equalsIgnoreCase(trigger.trim())
             || !matchesTriggerCondition(player)) {
             return InteractionResultHolder.pass(itemStack);
         }

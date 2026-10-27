@@ -20,7 +20,8 @@ public class RadlinkConfig {
         SERVER_OR_WORLD_NAME = BUILDER
             .comment("The world name or IP of the server to load the menu background from.\n" +
                 "You can specify the world folder name (e.g., 'New World') or the server IP (e.g., 'play.example.com').\n" +
-                "Leave blank to automatically select the last save.")
+                "For multiplayer content synchronization, enter the server address exactly as used to connect. " +
+                "After the first content download, restart Minecraft before reconnecting.")
             .define("serverOrWorldName", "");
         BUILDER.pop();
     }

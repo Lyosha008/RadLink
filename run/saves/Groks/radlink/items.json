@@ -1,12 +1,15 @@
 [
   {
-    "id": "weather_test_item",
-    "name": "weather_test_item",
+    "id": "test_food",
+    "name": "test_food",
     "maxStackSize": 1,
-    "trigger": "right_click",
+    "trigger": "eated",
+    "item_type": "food",
+    "nutrition": 6,
+    "saturation": 1.0,
     "then": [
       {
-        "say": { "text": "Дождь идет уже больше секунд!" }
+        "say": { "text": "Item used!" }
       }
     ]
   },

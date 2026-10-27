@@ -551,7 +551,10 @@ public class ClientMenuHandler {
             }
 
             if (!Files.exists(worldPath)) {
-                worldPath = gameDir.resolve("radlink").resolve("servers").resolve(safeTargetName);
+                Path downloadedPack = StartupContentPack.getDownloadedDirectory();
+                worldPath = downloadedPack != null
+                    ? downloadedPack
+                    : gameDir.resolve("radlink").resolve("servers").resolve(safeTargetName);
             }
 
             if (Files.exists(worldPath)) {

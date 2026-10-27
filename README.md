@@ -1,4 +1,4 @@
-# RadLink Mod & Script Engine Documentation
+# RadLink Mod Documentation
 
 RadLink is a Minecraft Forge mod that lets you create custom items, events, blocks, armor, effects, and fully customize the game's Main Menu using flexible JSON configurations and a built-in script engine.
 
@@ -22,21 +22,22 @@ RadLink is a Minecraft Forge mod that lets you create custom items, events, bloc
 
 ## 1. Folder Structure and File Locations
 
-All script and menu configuration JSON files are stored inside the game folder and can be linked to a specific single-player world or a multiplayer server.
+Script and content files are stored with the world/server data. For multiplayer, RadLink transfers the server's content to the client during the Forge connection handshake, before registry synchronization. The main-menu background is read from the local cache on the next game launch.
 
 ### A) Single-Player Worlds
 ```
 run/saves/<World_Name>/radlink/
 ```
 
-### B) Servers (Menu Background and Buttons for Specific IP)
+### B) Automatically synchronized multiplayer content
 ```
-run/radlink/servers/<Server_IP_without_dots>/
+<Minecraft game folder>/radlink/servers/<sanitized server address>/pack-<content hash>-<transfer id>/
 ```
-*Example for `play.example.com`:*
+Every character except English letters, digits, `_`, and `-` in the configured address is replaced with `_`. The port is part of the address and therefore part of the folder name. For example, `RadLink.aternos.me:29550` becomes:
 ```
-run/radlink/servers/play_example_com/menu_background.json
+<Minecraft game folder>/radlink/servers/RadLink_aternos_me_29550/
 ```
+Clients do not need to copy these files manually. Only RadLink definitions, `pack.mcmeta`, and files under `assets/` or `data/` are transferred; unrelated files and `variables.json` are not sent. The cache is written only after every file passes its SHA-256 check.
 
 ### Available files inside `radlink/`
 
@@ -121,14 +122,18 @@ Located in `.minecraft/config/radlink-client.toml`. Main parameters:
 
 | Parameter | Values | Description |
 |-----------|--------|-------------|
-| `isMenuChange` | `true` / `false` | `true` enables custom menu background and button reconfiguration. `false` disables all menu changes (100% vanilla appearance). |
-| `serverOrWorldName` | `""` or name | Forces the mod to load `menu_background.json` from a specific world or server. If empty (`""`), data is loaded from the last launched world automatically. |
+| `isMenuChange` | `true` / `false` | Must be `true` to enable the custom main-menu background and button changes. `false` leaves the vanilla menu unchanged. |
+| `serverOrWorldName` | `""`, world name, or server address | Selects where the client loads `menu_background.json`. A server address is sanitized to form the local folder name described above. If empty, the mod searches for the latest world save. |
 
 *Example:*
 ```toml
 isMenuChange = true
-serverOrWorldName = "MyAwesomeWorld"
+serverOrWorldName = "RadLink.aternos.me:29550"
 ```
+
+For multiplayer synchronization, install the same RadLink version on the client and the Forge server, put definitions/assets under the active server world's `radlink/` folder, and set `serverOrWorldName` to the exact address used to connect. The server world folder is selected from `server.properties` (`level-name`, default `world`). No HTTP server, extra port, or separate URL is used: files travel over the existing Forge connection.
+
+On the first connection, RadLink compares the server content with the local cache and downloads changed files before Forge synchronizes item/block/effect registries. It then disconnects with a restart notice. Fully close and relaunch Minecraft, then reconnect; simply rejoining without restarting does not register new content. If the cache already matches, the connection continues normally. A transfer is limited to 1,024 files, 32 MiB per file, and 64 MiB total.
 
 ---
 
@@ -207,6 +212,9 @@ RadLink scripts are JSON arrays of script definitions. Each definition has:
 | `id` | `string` | Unique identifier for the script/item/block |
 | `name` | `string` | Display name |
 | `maxStackSize` | `int` | Maximum stack size (for items) |
+| `item_type` | `string` | Optional item behavior type. Use `"food"` to make the item edible; if omitted, it is a normal non-food item. |
+| `nutrition` | `int` | Food hunger points restored; defaults to `4` for food items. |
+| `saturation` | `number` | Food saturation modifier; defaults to `0.3` for food items. |
 | `trigger` | `string` | Item interaction that starts the script; see the supported trigger list below |
 | `if` | `object` | **Main condition block**. Checked at the beginning of event processing. Determines whether the script runs at all. |
 | `then` | `array` or `object` | **Actions**. Executed if the `if` condition is met. |
@@ -222,8 +230,9 @@ Put a `trigger` on an item definition in `items.json`. A matching item script in
 | `left_click_block` | Start a left-click interaction with a block (not necessarily a completed block break) |
 | `attack_entity` | Attack an entity with the main-hand item |
 | `interact_entity` | Right-click an entity with the held item |
+| `eated` | Finish eating a food item (runs after the food is consumed) |
 
-Interactions are processed on the server, only if the Forge event was not cancelled. Block/entity triggers use the clicked target's block position for script actions; `right_click` uses the player's position. The item in the event's hand is used to find the matching definition.
+Interactions are processed on the server, only if the Forge event was not cancelled. Block/entity triggers use the clicked target's block position for script actions; `right_click` and `eated` use the player's position. The item in the event's hand (or the consumed stack for `eated`) is used to find the matching definition.
 
 ```json
 [
@@ -239,6 +248,25 @@ Interactions are processed on the server, only if the Forge event was not cancel
   }
 ]
 ```
+
+Food items use Minecraft's normal eating behavior. Add `"item_type": "food"` to make a custom item edible; optional `nutrition` and `saturation` values control how much hunger and saturation it restores. The `eated` trigger runs once the eating finishes, not when the player starts holding right-click:
+
+```json
+{
+  "id": "test_food",
+  "name": "Test Food",
+  "maxStackSize": 1,
+  "item_type": "food",
+  "nutrition": 6,
+  "saturation": 0.8,
+  "trigger": "eated",
+  "then": [
+    { "say": { "text": "Food eaten!" } }
+  ]
+}
+```
+
+If `item_type` is absent, RadLink creates a regular non-food item; without a `trigger`, it has no scripted behavior. Any unknown non-empty `item_type` is rejected with an error rather than silently creating a different item.
 
 `right_click` does not include block/entity interactions: Forge has separate events for those, so use the corresponding trigger. A click trigger represents an interaction attempt, not necessarily a successful block break or entity attack.
 

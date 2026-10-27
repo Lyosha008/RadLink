@@ -8,6 +8,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -48,6 +49,13 @@ public class ItemUseHandler {
     public static void onInteractEntity(PlayerInteractEvent.EntityInteractSpecific event) {
         if (!event.isCanceled()) {
             dispatch(event.getEntity(), event.getItemStack(), event.getTarget().blockPosition(), "interact_entity");
+        }
+    }
+
+    @SubscribeEvent
+    public static void onItemEaten(LivingEntityUseItemEvent.Finish event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            dispatch(player, event.getItem(), player.blockPosition(), "eated");
         }
     }
 

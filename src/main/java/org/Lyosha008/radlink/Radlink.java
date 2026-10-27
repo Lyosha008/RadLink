@@ -15,6 +15,7 @@ import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.flag.FeatureFlagSet;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.ArmorMaterials;
@@ -47,6 +48,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 @Mod(Radlink.MOD_ID)
@@ -85,6 +87,8 @@ public class Radlink {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         RadlinkConfig.register();
+        StartupContentPack.loadBeforeRegistries();
+        RadlinkNetwork.register();
         registerCustomContent();
 
         BLOCKS.register(modEventBus);
@@ -102,7 +106,10 @@ public class Radlink {
     }
 
     private void registerCustomContent() {
-        Path worldDataDir = resolveWorldDataDir();
+        Path startupContentDir = StartupContentPack.getDownloadedDirectory();
+        Path worldDataDir = startupContentDir != null
+            ? startupContentDir
+            : StartupContentPack.isRemoteTargetSelected() ? null : resolveWorldDataDir();
         ensureWorldAssets(worldDataDir);
 
         for (CustomDefinitions.CustomItemDefinition itemDefinition : CustomDefinitions.loadItems(worldDataDir)) {
@@ -248,14 +255,28 @@ public class Radlink {
     }
 
     static Path resolveWorldDataDir() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null && mc.level.getServer() != null) {
-            return mc.level.getServer().getWorldPath(LevelResource.ROOT).resolve("radlink");
+        if (net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level != null && mc.level.getServer() != null) {
+                return mc.level.getServer().getWorldPath(LevelResource.ROOT).resolve("radlink");
+            }
         }
 
         MinecraftServer currentServer = ServerLifecycleHooks.getCurrentServer();
         if (currentServer != null) {
             return currentServer.getWorldPath(LevelResource.ROOT).resolve("radlink");
+        }
+
+        if (net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT) {
+            Path startupContentDir = StartupContentPack.getDownloadedDirectory();
+            if (startupContentDir != null) {
+                return startupContentDir;
+            }
+            if (StartupContentPack.isRemoteTargetSelected()) {
+                return null;
+            }
+        } else {
+            return resolveDedicatedServerWorldDataDir();
         }
 
         Path gameDir = FMLPaths.GAMEDIR.get();
@@ -287,6 +308,35 @@ public class Radlink {
         if (Files.isDirectory(runDataPack)) return runDataPack;
 
         return gameDir.resolve("saves").resolve("world").resolve("radlink");
+    }
+
+    private static Path resolveDedicatedServerWorldDataDir() {
+        Path gameDir = FMLPaths.GAMEDIR.get().toAbsolutePath().normalize();
+        Path propertiesFile = gameDir.resolve("server.properties");
+        String levelName = "world";
+
+        if (Files.isRegularFile(propertiesFile)) {
+            Properties properties = new Properties();
+            try (InputStream input = Files.newInputStream(propertiesFile)) {
+                properties.load(input);
+                levelName = properties.getProperty("level-name", levelName).trim();
+            } catch (IOException e) {
+                System.err.println("[Radlink] Не удалось прочитать server.properties: " + e.getMessage());
+            }
+        }
+
+        try {
+            Path configuredWorld = Path.of(levelName);
+            Path worldPath = configuredWorld.isAbsolute() ? configuredWorld : gameDir.resolve(configuredWorld);
+            worldPath = worldPath.toAbsolutePath().normalize();
+            if (!configuredWorld.isAbsolute() && !worldPath.startsWith(gameDir)) {
+                throw new IllegalArgumentException("level-name выходит за пределы папки сервера");
+            }
+            return worldPath.resolve("radlink");
+        } catch (IllegalArgumentException e) {
+            System.err.println("[Radlink] Некорректный level-name в server.properties: " + e.getMessage());
+            return gameDir.resolve("world").resolve("radlink");
+        }
     }
 
     private static void ensureWorldAssets(Path worldRoot) {
@@ -444,7 +494,10 @@ public class Radlink {
     public static class WorldPackRegistration {
         @SubscribeEvent
         public static void addWorldResourcePack(AddPackFindersEvent event) {
-            Path worldRoot = resolveWorldDataDir();
+            Path worldRoot = event.getPackType() == PackType.CLIENT_RESOURCES
+                && StartupContentPack.getDownloadedDirectory() != null
+                ? StartupContentPack.getDownloadedDirectory()
+                : resolveWorldDataDir();
             if (worldRoot == null) return;
 
             boolean hasAssets = Files.isDirectory(worldRoot.resolve("assets").resolve(MOD_ID));
@@ -488,8 +541,24 @@ public class Radlink {
     private static Item createCustomItem(String itemId, CustomDefinitions.CustomItemDefinition definition) {
         String slot = definition.slot();
         if (slot == null || slot.isBlank()) {
-            return new CustomItem(itemId, definition.name(), definition.maxStackSize(),
-                definition.trigger(), definition.ifCondition(), definition.lore());
+            Item.Properties properties = new Item.Properties().stacksTo(definition.maxStackSize());
+            String itemType = definition.itemType();
+            boolean food = itemType != null && "food".equalsIgnoreCase(itemType.trim());
+            if (itemType != null && !itemType.isBlank()) {
+                if (!food) {
+                    throw new IllegalArgumentException("Unsupported item_type '" + itemType
+                        + "' for item '" + itemId + "'. Supported values: food.");
+                }
+
+                int nutrition = definition.nutrition() > 0 ? definition.nutrition() : 4;
+                float saturation = definition.saturation() == null ? 0.3F : definition.saturation();
+                properties.food(new FoodProperties.Builder()
+                    .nutrition(nutrition)
+                    .saturationMod(saturation)
+                    .build());
+            }
+
+            return new CustomItem(itemId, properties, food, definition.trigger(), definition.ifCondition(), definition.lore());
         }
         if (isHorseArmorSlot(slot)) {
             return new CustomHorseArmorItem(itemId, definition.protection(), definition.maxStackSize(),

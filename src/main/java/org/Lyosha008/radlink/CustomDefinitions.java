@@ -64,7 +64,13 @@ public final class CustomDefinitions {
         if (worldRoot == null) {
             return null;
         }
-        return worldRoot.resolve(fileName);
+        Path rootFile = worldRoot.resolve(fileName);
+        if (Files.exists(rootFile)) {
+            return rootFile;
+        }
+
+        Path resourcePackFile = worldRoot.resolve("assets").resolve(Radlink.MOD_ID).resolve(fileName);
+        return Files.exists(resourcePackFile) ? resourcePackFile : rootFile;
     }
 
     private static <T> List<T> readList(Path file, Type type) {
@@ -94,7 +100,10 @@ public final class CustomDefinitions {
         Integer defense,
         int protection,
         String horseTexture,
-        JsonArray lore) {
+        JsonArray lore,
+        @SerializedName("item_type") String itemType,
+        int nutrition,
+        Float saturation) {
     }
 
     public record CustomBlockDefinition(
