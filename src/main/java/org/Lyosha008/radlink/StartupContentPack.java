@@ -1,11 +1,16 @@
 package org.Lyosha008.radlink;
 
+import com.electronwill.nightconfig.core.CommentedConfig;
+import com.electronwill.nightconfig.toml.TomlParser;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
+
 import java.io.IOException;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
@@ -37,9 +42,10 @@ public final class StartupContentPack {
 
         Path gameDir = FMLPaths.GAMEDIR.get();
         String safeName = target.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-        Path localWorld = gameDir.resolve("saves").resolve(target).resolve("radlink");
-        Path sanitizedLocalWorld = gameDir.resolve("saves").resolve(safeName).resolve("radlink");
-        if (Files.isDirectory(localWorld) || Files.isDirectory(sanitizedLocalWorld)) {
+        Path localWorld = getLocalWorldContentDirectory(gameDir, target);
+        Path sanitizedLocalWorld = getLocalWorldContentDirectory(gameDir, safeName);
+        if ((localWorld != null && Files.isDirectory(localWorld))
+            || (sanitizedLocalWorld != null && Files.isDirectory(sanitizedLocalWorld))) {
             return;
         }
 
@@ -87,6 +93,17 @@ public final class StartupContentPack {
     }
 
     public static String getConfiguredServerAddress() {
+        Path configFile = FMLPaths.CONFIGDIR.get().resolve("radlink-client.toml");
+        if (Files.isRegularFile(configFile)) {
+            try (Reader reader = Files.newBufferedReader(configFile, StandardCharsets.UTF_8)) {
+                CommentedConfig config = new TomlParser().parse(reader);
+                String address = config.get("Menu Settings.serverOrWorldName");
+                return address == null ? "" : address.trim();
+            } catch (IOException | RuntimeException e) {
+                System.err.println("[RadLink] Не удалось прочитать раннюю настройку serverOrWorldName: " + e.getMessage());
+            }
+        }
+
         try {
             return RadlinkConfig.SERVER_OR_WORLD_NAME.get().trim();
         } catch (IllegalStateException e) {
@@ -95,12 +112,34 @@ public final class StartupContentPack {
     }
 
     static Path getServerCacheRoot(String serverAddress) {
-        String safeName = serverAddress.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+        String safeName = getAddressHost(serverAddress).replaceAll("[^a-zA-Z0-9_\\-]", "_");
         return FMLPaths.GAMEDIR.get()
             .resolve("radlink")
             .resolve("servers")
             .resolve(safeName)
             .normalize();
+    }
+
+    static Path getLocalWorldContentDirectory(Path gameDir, String worldName) {
+        if (worldName == null || worldName.isBlank()) {
+            return null;
+        }
+
+        try {
+            Path name = Path.of(worldName);
+            if (name.isAbsolute() || name.getNameCount() != 1) {
+                return null;
+            }
+
+            Path savesDirectory = gameDir.resolve("saves").normalize();
+            Path worldDirectory = savesDirectory.resolve(name).normalize();
+            if (!worldDirectory.startsWith(savesDirectory) || worldDirectory.equals(savesDirectory)) {
+                return null;
+            }
+            return worldDirectory.resolve("radlink");
+        } catch (InvalidPathException e) {
+            return null;
+        }
     }
 
     static Path createStagingDirectory(String serverAddress, UUID transferId) throws IOException {
@@ -138,11 +177,89 @@ public final class StartupContentPack {
             Files.deleteIfExists(pointerTemp);
         }
 
+        cleanupOldPacks(cacheRoot, packDirectory);
+
         if (FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT
             && getConfiguredServerAddress().equalsIgnoreCase(serverAddress)) {
             downloadedDirectory = packDirectory;
             manifestHash = contentHash;
             remoteTargetSelected = true;
+        }
+    }
+
+    static boolean addressesMatch(String configuredAddress, String actualAddress) {
+        if (hasExplicitPort(configuredAddress)) {
+            return normalizeAddress(configuredAddress).equals(normalizeAddress(actualAddress));
+        }
+        return getAddressHost(configuredAddress).equalsIgnoreCase(getAddressHost(actualAddress));
+    }
+
+    private static boolean hasExplicitPort(String address) {
+        if (address == null || address.isBlank()) {
+            return false;
+        }
+
+        String normalized = address.trim();
+        int closingBracket = normalized.startsWith("[") ? normalized.indexOf(']') : -1;
+        if (closingBracket >= 0) {
+            return normalized.length() > closingBracket + 2
+                && normalized.charAt(closingBracket + 1) == ':'
+                && isNumericPort(normalized.substring(closingBracket + 2));
+        }
+
+        int firstColon = normalized.indexOf(':');
+        return firstColon >= 0
+            && firstColon == normalized.lastIndexOf(':')
+            && isNumericPort(normalized.substring(firstColon + 1));
+    }
+
+    private static String getAddressHost(String address) {
+        if (address == null) {
+            return "";
+        }
+
+        String normalized = address.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.startsWith("[")) {
+            int closingBracket = normalized.indexOf(']');
+            if (closingBracket > 0) {
+                return normalized.substring(0, closingBracket + 1);
+            }
+        }
+
+        int firstColon = normalized.indexOf(':');
+        if (firstColon >= 0 && firstColon == normalized.lastIndexOf(':')
+            && isNumericPort(normalized.substring(firstColon + 1))) {
+            return normalized.substring(0, firstColon);
+        }
+        return normalized;
+    }
+
+    private static boolean isNumericPort(String value) {
+        return !value.isEmpty() && value.chars().allMatch(Character::isDigit);
+    }
+
+    private static void cleanupOldPacks(Path cacheRoot, Path currentPack) {
+        try (var entries = Files.list(cacheRoot)) {
+            for (Path entry : entries.filter(Files::isDirectory).toList()) {
+                if (!entry.equals(currentPack) && entry.getParent().equals(cacheRoot)
+                    && PACK_DIRECTORY_PATTERN.matches(entry.getFileName().toString())) {
+                    try {
+                        deleteCacheDirectory(entry);
+                    } catch (IOException e) {
+                        System.err.println("[RadLink] Не удалось удалить старый кэш " + entry + ": " + e.getMessage());
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("[RadLink] Не удалось очистить старые версии кэша: " + e.getMessage());
+        }
+    }
+
+    private static void deleteCacheDirectory(Path directory) throws IOException {
+        try (var entries = Files.walk(directory)) {
+            for (Path entry : entries.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(entry);
+            }
         }
     }
 

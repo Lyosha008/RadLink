@@ -119,10 +119,9 @@ public final class RadlinkContentSync {
 
         ServerData currentServer = Minecraft.getInstance().getCurrentServer();
         if (currentServer != null
-            && !StartupContentPack.normalizeAddress(serverAddress)
-                .equals(StartupContentPack.normalizeAddress(currentServer.ip))) {
+            && !StartupContentPack.addressesMatch(serverAddress, currentServer.ip)) {
             disconnect(connection,
-                "RadLink: serverOrWorldName должен совпадать с адресом выбранного сервера. Исправь конфиг и подключись снова.");
+                "RadLink: serverOrWorldName должен совпадать с адресом выбранного сервера (порт можно не указывать). Исправь конфиг и подключись снова.");
             return;
         }
 

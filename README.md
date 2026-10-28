@@ -2,6 +2,9 @@
 
 RadLink is a Minecraft Forge mod that lets you create custom items, events, blocks, armor, effects, and fully customize the game's Main Menu using flexible JSON configurations and a built-in script engine.
 
+# ATTENTION!
+* Not all files here are updated all the time, so taking world files, for example, Changi or player files, is not the best idea.
+
 ---
 
 ## Table of Contents
@@ -123,7 +126,7 @@ Located in `.minecraft/config/radlink-client.toml`. Main parameters:
 | Parameter | Values | Description |
 |-----------|--------|-------------|
 | `isMenuChange` | `true` / `false` | Must be `true` to enable the custom main-menu background and button changes. `false` leaves the vanilla menu unchanged. |
-| `serverOrWorldName` | `""`, world name, or server address | Selects where the client loads `menu_background.json`. A server address is sanitized to form the local folder name described above. If empty, the mod searches for the latest world save. |
+| `serverOrWorldName` | `""`, world name, or server address | Selects where the client loads `menu_background.json` and which server's content cache to use. The cache is keyed by host/IP, not port. If empty, the mod searches for the latest world save. |
 
 *Example:*
 ```toml
@@ -131,9 +134,9 @@ isMenuChange = true
 serverOrWorldName = "RadLink.aternos.me:29550"
 ```
 
-For multiplayer synchronization, install the same RadLink version on the client and the Forge server, put definitions/assets under the active server world's `radlink/` folder, and set `serverOrWorldName` to the exact address used to connect. The server world folder is selected from `server.properties` (`level-name`, default `world`). No HTTP server, extra port, or separate URL is used: files travel over the existing Forge connection.
+For multiplayer synchronization, install the same RadLink version on the client and the Forge server, put definitions/assets under the active server world's `radlink/` folder, and set `serverOrWorldName` to the server's IP/host. The port may be omitted; this is recommended for worlds opened to LAN because Minecraft assigns a new port each time. The server world folder is selected from `server.properties` (`level-name`, default `world`). No HTTP server, extra port, or separate URL is used: files travel over the existing Forge connection. Servers on the same host share one cache, which is updated when content changes.
 
-On the first connection, RadLink compares the server content with the local cache and downloads changed files before Forge synchronizes item/block/effect registries. It then disconnects with a restart notice. Fully close and relaunch Minecraft, then reconnect; simply rejoining without restarting does not register new content. If the cache already matches, the connection continues normally. A transfer is limited to 1,024 files, 32 MiB per file, and 64 MiB total.
+On the first connection, RadLink compares the server content with the local cache and downloads changed files before Forge synchronizes item/block/effect registries. It then disconnects with a restart notice. Fully close and relaunch Minecraft, then reconnect; simply rejoining without restarting does not register new content. If the cache already matches, the connection continues normally. Only the current content pack is retained per host, so changed ports and updates do not accumulate duplicate packs. A transfer is limited to 1,024 files, 32 MiB per file, and 64 MiB total.
 
 ---
 

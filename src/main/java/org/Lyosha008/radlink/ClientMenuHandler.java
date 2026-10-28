@@ -537,30 +537,33 @@ public class ClientMenuHandler {
 
         Path gameDir = Minecraft.getInstance().gameDirectory.toPath();
 
-        String configTarget = "";
-        try {
-            configTarget = RadlinkConfig.SERVER_OR_WORLD_NAME.get().trim();
-        } catch (Exception ignored) {}
+        String configTarget = StartupContentPack.getConfiguredServerAddress();
 
         if (!configTarget.isEmpty()) {
             String safeTargetName = configTarget.replaceAll("[^a-zA-Z0-9_\\-]", "_");
 
-            Path worldPath = gameDir.resolve("saves").resolve(configTarget).resolve("radlink");
-            if (!Files.exists(worldPath)) {
-                worldPath = gameDir.resolve("saves").resolve(safeTargetName).resolve("radlink");
-            }
-
-            if (!Files.exists(worldPath)) {
-                Path downloadedPack = StartupContentPack.getDownloadedDirectory();
-                worldPath = downloadedPack != null
-                    ? downloadedPack
-                    : gameDir.resolve("radlink").resolve("servers").resolve(safeTargetName);
-            }
-
-            if (Files.exists(worldPath)) {
+            Path worldPath = StartupContentPack.getLocalWorldContentDirectory(gameDir, configTarget);
+            if (worldPath != null && Files.isDirectory(worldPath)) {
                 activeWorldDir = worldPath;
-            } else {
-                System.err.println("[RadLink] Папка для '" + configTarget + "' не найдена (" + worldPath.toAbsolutePath() + ")");
+            }
+
+            if (activeWorldDir == null) {
+                Path sanitizedLocalWorld = StartupContentPack.getLocalWorldContentDirectory(gameDir, safeTargetName);
+                if (sanitizedLocalWorld != null && Files.isDirectory(sanitizedLocalWorld)) {
+                    activeWorldDir = sanitizedLocalWorld;
+                }
+            }
+
+            if (activeWorldDir == null && StartupContentPack.isRemoteTargetSelected()) {
+                activeWorldDir = StartupContentPack.getDownloadedDirectory();
+                if (activeWorldDir == null) {
+                    System.err.println("[RadLink] Для сервера '" + configTarget + "' ещё нет загруженного контента.");
+                    return;
+                }
+            }
+
+            if (activeWorldDir == null) {
+                System.err.println("[RadLink] Папка для '" + configTarget + "' не найдена.");
             }
         }
 
