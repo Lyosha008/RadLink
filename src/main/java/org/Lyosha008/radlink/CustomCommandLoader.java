@@ -3,7 +3,10 @@ package org.Lyosha008.radlink;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.ReloadableServerResources;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -18,9 +21,11 @@ public class CustomCommandLoader extends SimpleJsonResourceReloadListener {
 
     private static final Gson GSON = new Gson();
     public static final Map<String, JsonObject> LOADED_COMMANDS = new HashMap<>();
+    private final CommandDispatcher<CommandSourceStack> dispatcher;
 
-    public CustomCommandLoader() {
+    public CustomCommandLoader(CommandDispatcher<CommandSourceStack> dispatcher) {
         super(GSON, "commands");
+        this.dispatcher = dispatcher;
     }
 
     @Override
@@ -33,10 +38,12 @@ public class CustomCommandLoader extends SimpleJsonResourceReloadListener {
                 System.out.println("[RadLink Debug] Загружена команда из JSON: " + commandName);
             }
         });
+        CustomCommandRegistry.registerCustomCommands(dispatcher);
     }
 
     @SubscribeEvent
     public static void onAddReloadListener(AddReloadListenerEvent event) {
-        event.addListener(new CustomCommandLoader());
+        ReloadableServerResources serverResources = event.getServerResources();
+        event.addListener(new CustomCommandLoader(serverResources.getCommands().getDispatcher()));
     }
 }

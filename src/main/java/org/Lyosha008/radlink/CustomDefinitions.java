@@ -103,7 +103,8 @@ public final class CustomDefinitions {
         JsonArray lore,
         @SerializedName("item_type") String itemType,
         int nutrition,
-        Float saturation) {
+        Float saturation,
+        @SerializedName("eat_duration") Integer eatDuration) {
     }
 
     public record CustomBlockDefinition(

@@ -544,10 +544,15 @@ public class Radlink {
             Item.Properties properties = new Item.Properties().stacksTo(definition.maxStackSize());
             String itemType = definition.itemType();
             boolean food = itemType != null && "food".equalsIgnoreCase(itemType.trim());
+            Integer eatDuration = definition.eatDuration();
             if (itemType != null && !itemType.isBlank()) {
                 if (!food) {
                     throw new IllegalArgumentException("Unsupported item_type '" + itemType
                         + "' for item '" + itemId + "'. Supported values: food.");
+                }
+
+                if (eatDuration != null && eatDuration <= 0) {
+                    throw new IllegalArgumentException("eat_duration must be positive for food item '" + itemId + "'.");
                 }
 
                 int nutrition = definition.nutrition() > 0 ? definition.nutrition() : 4;
@@ -558,7 +563,8 @@ public class Radlink {
                     .build());
             }
 
-            return new CustomItem(itemId, properties, food, definition.trigger(), definition.ifCondition(), definition.lore());
+            return new CustomItem(itemId, properties, food, eatDuration, definition.trigger(),
+                definition.ifCondition(), definition.lore());
         }
         if (isHorseArmorSlot(slot)) {
             return new CustomHorseArmorItem(itemId, definition.protection(), definition.maxStackSize(),

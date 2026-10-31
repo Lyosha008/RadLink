@@ -19,6 +19,7 @@ import java.util.List;
 public class CustomItem extends Item {
     private final String id;
     private final boolean food;
+    private final Integer eatDuration;
     private final String trigger;
     private final JsonObject ifCondition;
     private final JsonArray lore;
@@ -27,6 +28,7 @@ public class CustomItem extends Item {
         String id,
         Item.Properties properties,
         boolean food,
+        Integer eatDuration,
         String trigger,
         JsonObject ifCondition,
         JsonArray lore
@@ -34,6 +36,7 @@ public class CustomItem extends Item {
         super(properties);
         this.id = id;
         this.food = food;
+        this.eatDuration = eatDuration;
         this.trigger = trigger;
         this.ifCondition = ifCondition;
         this.lore = lore;
@@ -41,6 +44,11 @@ public class CustomItem extends Item {
 
     @Override
     public Component getName(ItemStack stack) {return Component.translatable("item." + Radlink.MOD_ID + "." + id);}
+
+    @Override
+    public int getUseDuration(ItemStack stack) {
+        return !food || eatDuration == null ? super.getUseDuration(stack) : eatDuration;
+    }
 
     @Override
     public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {

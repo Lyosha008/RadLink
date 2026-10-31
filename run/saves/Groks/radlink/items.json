@@ -1,12 +1,14 @@
 [
   {
     "id": "test_food",
+
     "name": "test_food",
     "maxStackSize": 1,
     "trigger": "eated",
     "item_type": "food",
     "nutrition": 6,
     "saturation": 1.0,
+    "eat_duration": 10,
     "then": [
       {
         "say": { "text": "Item used!" }

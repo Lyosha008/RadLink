@@ -10,6 +10,8 @@ RadLink is a Minecraft Forge mod that lets you create custom items, events, bloc
 ## Table of Contents
 
 1. [Folder Structure and File Locations](#1-folder-structure-and-file-locations)
+   - [Custom crafting recipes](#custom-crafting-recipes)
+   - [Custom commands](#custom-commands)
 2. [Mod Configuration (`radlink-client.toml`)](#2-mod-configuration-radlink-clienttoml)
 3. [Main Menu Customization (`menu_background.json`)](#3-main-menu-customization-menu_backgroundjson)
 4. [Script System Basics](#4-script-system-basics)
@@ -56,6 +58,79 @@ Clients do not need to copy these files manually. Only RadLink definitions, `pac
 | `menu_background.json` | Customization of the main menu and buttons |
 | `variables.json` | Dynamic world variable storage |
 | `pack.mcmeta` | Metadata for datapack / resource pack |
+
+### Custom crafting recipes
+
+Recipes use Minecraft's standard datapack recipe JSON format. Put each recipe in:
+
+```
+radlink/data/radlink/recipes/<recipe_id>.json
+```
+
+For example, `radlink/data/radlink/recipes/respirator.json` creates a recipe in the `radlink` namespace. The recipe file name is its ID; ingredient and result IDs use the usual `namespace:item_id` format. Custom items defined by RadLink can be used as ingredients or results, for example `radlink:test_food`.
+
+Shaped recipe example (a 3x3 glass recipe for a custom respirator):
+
+```json
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "###",
+    "###",
+    "###"
+  ],
+  "key": {
+    "#": { "item": "minecraft:glass" }
+  },
+  "result": { "item": "radlink:respirator", "count": 1 }
+}
+```
+
+Shapeless recipe example (one golden apple makes one custom food):
+
+```json
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "minecraft:golden_apple" }
+  ],
+  "result": { "item": "radlink:test_food", "count": 1 }
+}
+```
+
+RadLink creates a default shapeless recipe using one diamond for each custom item if its recipe file does not exist yet. To provide your own recipe, create `<item_id>.json` in the recipes folder before starting/loading the world; an existing file is kept and used instead of the default. Recipes and their files are included in multiplayer content synchronization.
+
+### Custom commands
+
+Define each command in its own JSON file in the world's datapack:
+
+```
+radlink/data/radlink/commands/<command_name>.json
+```
+
+The file name (without `.json`) becomes the command name. For example, `customsetweather.json` adds `/customsetweather`. The JSON `name` property is not used.
+
+```json
+{
+  "permission_level": 2,
+  "arguments": [
+    {
+      "name": "target",
+      "type": "player"
+    }
+  ],
+  "actions": [
+    {
+      "type": "chat_message",
+      "say": "Команда выполнена!"
+    }
+  ]
+}
+```
+
+`permission_level` is optional and defaults to `0`. Level `2` restricts the command to operators and single-player worlds with cheats enabled. Currently, `player` is the supported argument type; it adds an optional player argument, for example `/customsetweather Steve`. When supplied, that player is passed as the entity context to regular RadLink script actions.
+
+`actions` can contain RadLink script action objects. The `chat_message` action shown above sends its `say` text to the command source. Run `/reload` or `/radlink reload` after changing command JSON files. These files are included in multiplayer content synchronization.
 
 ## Custom armor (`items.json` or `armor_item.json`)
 
@@ -218,6 +293,7 @@ RadLink scripts are JSON arrays of script definitions. Each definition has:
 | `item_type` | `string` | Optional item behavior type. Use `"food"` to make the item edible; if omitted, it is a normal non-food item. |
 | `nutrition` | `int` | Food hunger points restored; defaults to `4` for food items. |
 | `saturation` | `number` | Food saturation modifier; defaults to `0.3` for food items. |
+| `eat_duration` | `int` | Number of ticks required to eat the food; defaults to Minecraft's normal `32` ticks. Must be positive. |
 | `trigger` | `string` | Item interaction that starts the script; see the supported trigger list below |
 | `if` | `object` | **Main condition block**. Checked at the beginning of event processing. Determines whether the script runs at all. |
 | `then` | `array` or `object` | **Actions**. Executed if the `if` condition is met. |
@@ -252,7 +328,7 @@ Interactions are processed on the server, only if the Forge event was not cancel
 ]
 ```
 
-Food items use Minecraft's normal eating behavior. Add `"item_type": "food"` to make a custom item edible; optional `nutrition` and `saturation` values control how much hunger and saturation it restores. The `eated` trigger runs once the eating finishes, not when the player starts holding right-click:
+Food items use Minecraft's normal eating behavior. Add `"item_type": "food"` to make a custom item edible; optional `nutrition` and `saturation` values control how much hunger and saturation it restores, and `eat_duration` sets the eating time in ticks (32 by default). The `eated` trigger runs once the eating finishes, not when the player starts holding right-click:
 
 ```json
 {
@@ -262,6 +338,7 @@ Food items use Minecraft's normal eating behavior. Add `"item_type": "food"` to 
   "item_type": "food",
   "nutrition": 6,
   "saturation": 0.8,
+  "eat_duration": 60,
   "trigger": "eated",
   "then": [
     { "say": { "text": "Food eaten!" } }
@@ -528,55 +605,27 @@ This file is managed automatically by the mod. You generally do not need to edit
         "trigger": "right_click",
         "then": [
             {
-            "If": { "entity": { "==": "player" } },
-            "Then": [
-                {
-                    "summon": {
-                        "type": "minecraft:zombie",
-                        "count": 1
-                    }
-                },
-                { "damage": 5.0 },
-                {
-                    "effect": {
-                        "id": "minecraft:regeneration",
-                        "duration": 100,
-                        "amplifier": 1
-                    }
-                },
-                { "say": { "text": "Atmosphere: ${global_atmosphere}" } },
-                {
-                    "explosion": {
-                        "radius": 3.0,
-                        "fire": false
-                    }
-                }
-            ]
+               "If": { "entity": { "==": "player" } },
+               "Then": [
+                   {
+                      "case": [
+                         {
+                            "If": { "query": { "global_atmosphere": { ">=": 100 } } },
+                            "Then": [
+                               { "say": { "text": "Critical atmospheric level!" } }
+                            ]
+                         },
+                         {
+                            "If": { "query": { "global_atmosphere": { ">=": 50 } } },
+                            "Then": [
+                               { "say": { "text": "Atmosphere is normal." } }
+                            ]
+                         }
+                      ]
+                   }
+               ]
             }
         ]
     }
 ]
-```
-
-### 9. Branching logic ("case")
-
-  Allows you to check a chain of conditions in turn and execute only the `Then` action that first matches the `If` conditions..
-
-  ```json
-  {
-    "case": [
-      {
-        "If": { "query": { "global_atmosphere": { ">=": 100 } } },
-        "Then": [
-          { "say": { "text": "Critical atmospheric level!" } }
-        ]
-      },
-      {
-        "If": { "query": { "global_atmosphere": { ">=": 50 } } },
-        "Then": [
-          { "say": { "text": "Atmosphere is normal." } }
-        ]
-      }
-    ]
-  }
 ```

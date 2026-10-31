@@ -74,7 +74,7 @@ public class LoreParser {
     }
 
     private static ChatFormatting parseColor(String colorName) {
-        try {return ChatFormatting.valueOf(colorName.toUpperCase());
+        try {                                 return ChatFormatting.valueOf(colorName.toUpperCase());
         } catch (IllegalArgumentException e) {return ChatFormatting.WHITE;}
     }
 }
