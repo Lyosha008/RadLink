@@ -38,7 +38,7 @@ public class WorldTickHandler {
 
             List<CustomDefinitions.CustomScriptDefinition> scripts = CustomDefinitions.loadScripts(worldRoot);
             for (CustomDefinitions.CustomScriptDefinition script : scripts) {
-                if (script.isSuper()) {
+                if (script.isSuper() && !isTimeScript(script)) {
                     ScriptEngine.processWorldTick(level, script);
                 }
             }
@@ -83,7 +83,6 @@ public class WorldTickHandler {
                 for (CustomDefinitions.CustomScriptDefinition script : scripts) {
                     for (CustomDefinitions.CustomScriptDefinition scriptDef : scripts) {
                         boolean isSuper = scriptDef.isSuper();
-
                         if ((isSuper && runSuper) || (!isSuper && runNormal)) {
                             ScriptEngine.processWorldTick(level, scriptDef);
                         }
@@ -93,6 +92,12 @@ public class WorldTickHandler {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static boolean isTimeScript(CustomDefinitions.CustomScriptDefinition script) {
+        return script.ifCondition() != null
+            && script.ifCondition().has("who")
+            && "time".equalsIgnoreCase(script.ifCondition().get("who").getAsString());
     }
 
     // --- ЛОГИКА ОЧЕРЕДИ ТЕЛЕПОРТА (ПРОСТО ДОПИСАНА В КОНЕЦ КЛАССА) ---

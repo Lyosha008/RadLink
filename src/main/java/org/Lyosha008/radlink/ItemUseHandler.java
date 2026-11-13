@@ -81,8 +81,13 @@ public class ItemUseHandler {
             return;
         }
 
-        if (stack.getItem() instanceof CustomItem customItem && !customItem.matchesTriggerCondition(serverPlayer)) {
-            return;
+        if (stack.getItem() instanceof CustomItem customItem) {
+            if (customItem.isProjectile()) {
+                return;
+            }
+            if (!customItem.matchesTriggerCondition(serverPlayer)) {
+                return;
+            }
         }
 
         executeIfTriggered(itemScript, trigger, blockState, position, serverPlayer);

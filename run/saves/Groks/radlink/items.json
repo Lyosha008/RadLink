@@ -1,7 +1,6 @@
 [
   {
     "id": "test_food",
-
     "name": "test_food",
     "maxStackSize": 1,
     "trigger": "eated",
@@ -58,7 +57,9 @@
       {
         "If": {
           "who": "entity",
-          "entity": { "==": "player" }
+          "entity": {
+            "==": "player"
+          }
         },
         "Then": [
           {
@@ -73,20 +74,56 @@
               "mode": [
                 {
                   "mode_type": "revive_teleport",
-                  "coordinates": [500, {"~": "15"}, 200],
+                  "coordinates": [
+                    500,
+                    {
+                      "~": "15"
+                    },
+                    200
+                  ],
                   "return_delay_ticks": 60
                 }
               ]
             }
           },
-          { "say": { "text": "Atmosphere: ${global_atmosphere}"}},
+          {
+            "say": {
+              "text": "Atmosphere: ${global_atmosphere}"
+            }
+          },
           {
             "set": [
               {
                 "mode": [
-                  {"mode_type": "fill"},
-                  {"coordinates_1": [{"~":"-1"},{"~": "-1"}, {"~":"-1"}]},
-                  {"coordinates_2": [{"~": "1"},{"~": "-1"}, {"~": "1"}]}
+                  {
+                    "mode_type": "fill"
+                  },
+                  {
+                    "coordinates_1": [
+                      {
+                        "~": "-1"
+                      },
+                      {
+                        "~": "-1"
+                      },
+                      {
+                        "~": "-1"
+                      }
+                    ]
+                  },
+                  {
+                    "coordinates_2": [
+                      {
+                        "~": "1"
+                      },
+                      {
+                        "~": "-1"
+                      },
+                      {
+                        "~": "1"
+                      }
+                    ]
+                  }
                 ],
                 "block": "diamond_block",
                 "tests": [
@@ -98,6 +135,68 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "test_projectile",
+    "name": "test_projectile",
+    "maxStackSize": 64,
+    "item_type": "projectile",
+    "trigger": "right_click",
+    "if": {
+      "who": "any",
+      "any": {
+          "==": "was_hit"
+      }
+    },
+    "then": [
+      {
+        "case": [
+          {
+            "If": {
+              "was_hit": {
+                "who": "entity",
+                "entity": {
+                  "==": [
+                    "zombie",
+                    "skeleton",
+                    "creeper",
+                    "spider"
+                  ]
+                }
+              }
+            },
+            "Then": {
+              "damage": 5.0
+            }
+          },
+          {
+            "If": {
+              "was_hit": {
+                "who": "block",
+                "block": {
+                  "==": "any"
+                }
+              }
+            },
+            "Then": {
+              "set": [
+                {
+                  "mode": [
+                    { "mode_type": "set_block" },
+                    { "coordinates_1": [{"~": "0"}, {"~": "0"}, {"~": "0"}]}
+                  ],
+                  "block": "air",
+                  "harvestLevel": 1,
+                  "tests": [
+                    { "isAir": false, "type": "destroy", "filter": "no" }
+                  ]
+                }
+              ]
+            }
           }
         ]
       }

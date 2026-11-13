@@ -1,7 +1,8 @@
 {
   "global_atmosphere": 202.0,
-  "global_last_day": 3.0,
-  "entity_disease_progress_380df991-f603-344c-a090-369bad2a924a": 13.0,
+  "global_last_day": 25.0,
+  "entity_disease_progress_380df991-f603-344c-a090-369bad2a924a": 19.0,
   "entity_chance_disease_380df991-f603-344c-a090-369bad2a924a": 0.25,
-  "has_arm_380df991-f603-344c-a090-369bad2a924a": 1.0
+  "has_arm_380df991-f603-344c-a090-369bad2a924a": 1.0,
+  "global_time_cycle_a516df13-7424-3159-bdc9-9c99f3876ac5_last_day": 25.0
 }

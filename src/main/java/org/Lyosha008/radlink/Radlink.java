@@ -544,26 +544,29 @@ public class Radlink {
             Item.Properties properties = new Item.Properties().stacksTo(definition.maxStackSize());
             String itemType = definition.itemType();
             boolean food = itemType != null && "food".equalsIgnoreCase(itemType.trim());
+            boolean projectile = itemType != null && "projectile".equalsIgnoreCase(itemType.trim());
             Integer eatDuration = definition.eatDuration();
             if (itemType != null && !itemType.isBlank()) {
-                if (!food) {
+                if (!food && !projectile) {
                     throw new IllegalArgumentException("Unsupported item_type '" + itemType
-                        + "' for item '" + itemId + "'. Supported values: food.");
+                        + "' for item '" + itemId + "'. Supported values: food, projectile.");
                 }
 
-                if (eatDuration != null && eatDuration <= 0) {
+                if (food && eatDuration != null && eatDuration <= 0) {
                     throw new IllegalArgumentException("eat_duration must be positive for food item '" + itemId + "'.");
                 }
 
-                int nutrition = definition.nutrition() > 0 ? definition.nutrition() : 4;
-                float saturation = definition.saturation() == null ? 0.3F : definition.saturation();
-                properties.food(new FoodProperties.Builder()
-                    .nutrition(nutrition)
-                    .saturationMod(saturation)
-                    .build());
+                if (food) {
+                    int nutrition = definition.nutrition() > 0 ? definition.nutrition() : 4;
+                    float saturation = definition.saturation() == null ? 0.3F : definition.saturation();
+                    properties.food(new FoodProperties.Builder()
+                        .nutrition(nutrition)
+                        .saturationMod(saturation)
+                        .build());
+                }
             }
 
-            return new CustomItem(itemId, properties, food, eatDuration, definition.trigger(),
+            return new CustomItem(itemId, properties, food, projectile, eatDuration, definition.trigger(),
                 definition.ifCondition(), definition.lore());
         }
         if (isHorseArmorSlot(slot)) {

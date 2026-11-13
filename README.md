@@ -12,6 +12,10 @@ RadLink is a Minecraft Forge mod that lets you create custom items, events, bloc
 1. [Folder Structure and File Locations](#1-folder-structure-and-file-locations)
    - [Custom crafting recipes](#custom-crafting-recipes)
    - [Custom commands](#custom-commands)
+   - [Custom items and item models](#custom-items-and-item-models)
+   - [Custom blocks and block models](#custom-blocks-and-block-models)
+   - [Custom potion effects](#custom-potion-effects)
+   - [Names, textures, and reloading](#names-textures-and-reloading)
 2. [Mod Configuration (`radlink-client.toml`)](#2-mod-configuration-radlink-clienttoml)
 3. [Main Menu Customization (`menu_background.json`)](#3-main-menu-customization-menu_backgroundjson)
 4. [Script System Basics](#4-script-system-basics)
@@ -21,7 +25,6 @@ RadLink is a Minecraft Forge mod that lets you create custom items, events, bloc
 6. [Actions (`then` / `Then`)](#6-actions-then--then)
 7. [Variables and Placeholders](#7-variables-and-placeholders)
 8. [Branching Logic (`case`)](#8-branching-logic-case)
-9. [Complete Script Examples](#9-complete-script-examples)
 
 ---
 
@@ -42,7 +45,7 @@ Every character except English letters, digits, `_`, and `-` in the configured a
 ```
 <Minecraft game folder>/radlink/servers/RadLink_aternos_me_29550/
 ```
-Clients do not need to copy these files manually. Only RadLink definitions, `pack.mcmeta`, and files under `assets/` or `data/` are transferred; unrelated files and `variables.json` are not sent. The cache is written only after every file passes its SHA-256 check.
+Clients do not need to copy these files manually. Only RadLink definitions, `pack.mcmeta`, and files under `assets/` or `data/` are transferred; unrelated files and `variables.json` are not sent.
 
 ### Available files inside `radlink/`
 
@@ -131,6 +134,139 @@ The file name (without `.json`) becomes the command name. For example, `customse
 `permission_level` is optional and defaults to `0`. Level `2` restricts the command to operators and single-player worlds with cheats enabled. Currently, `player` is the supported argument type; it adds an optional player argument, for example `/customsetweather Steve`. When supplied, that player is passed as the entity context to regular RadLink script actions.
 
 `actions` can contain RadLink script action objects. The `chat_message` action shown above sends its `say` text to the command source. Run `/reload` or `/radlink reload` after changing command JSON files. These files are included in multiplayer content synchronization.
+
+### Custom items and item models
+
+Define ordinary items, food, and projectile items in the root `radlink/items.json` file as a JSON array. IDs are normalized to lowercase, and spaces become underscores; use simple IDs made of letters, digits, and underscores. The result becomes the registry ID `radlink:<id>`. A minimal definition is:
+
+```json
+[
+  {
+    "id": "copper_token",
+    "maxStackSize": 64
+  }
+]
+```
+
+The item icon is a Minecraft item model. Put its texture at `radlink/assets/radlink/textures/item/copper_token.png`. RadLink creates a generated item model at `radlink/assets/radlink/models/item/copper_token.json` if one does not already exist. That default model uses the matching texture when present, otherwise it uses the diamond texture. You can also set `"texture": "radlink:item/copper_token"` in the item definition; the value is a resource location, and `radlink:item/copper_token` refers to `assets/radlink/textures/item/copper_token.png`.
+
+To customize the item model, create or edit `assets/radlink/models/item/<id>.json`. For example:
+
+```json
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "radlink:item/copper_token"
+  }
+}
+```
+
+This is the standard Minecraft item-model format; it supports normal item-model parents, display transforms, and overrides. RadLink only creates a default model when the file is absent, so a custom model is left in place.
+
+Food fields (`item_type`, `nutrition`, `saturation`, `eat_duration`) and item interaction scripts are described in [Script System Basics](#4-script-system-basics). A thrown item is configured with `"item_type": "projectile"`; it uses the snowball projectile entity and its hit scripts. This JSON option does not define a separate projectile entity, flight animation, or independent projectile model. Its item icon/model is configured like any other item above.
+
+### Custom blocks and block models
+
+Define blocks in the root `radlink/blocks.json` file. Each entry creates both a block and its placeable item, both registered as `radlink:<id>`:
+
+```json
+[
+  {
+    "id": "copper_panel",
+    "name": "copper_panel",
+    "maxStackSize": 64,
+    "hardness": 3.0,
+    "resistance": 6.0,
+    "directional": false
+  }
+]
+```
+
+Supported block fields are `id`, `name`, `maxStackSize`, `hardness`, `resistance`, and `directional`. Hardness and resistance control breaking and explosion resistance. A normal block uses the same texture on every face. RadLink creates a default cube model, blockstate file, and item model if the corresponding files do not exist. This creates a basic solid block that drops itself; `blocks.json` does not configure block inventories, special drop tables, sounds, or other block behavior. Use a `who: "block"` script in `global.json` for supported script behavior.
+
+For the example above, the default texture path is:
+
+```
+radlink/assets/radlink/textures/block/copper_panel.png
+```
+
+The generated block model is `assets/radlink/models/block/copper_panel.json`, the blockstate is `assets/radlink/blockstates/copper_panel.json`, and the block's inventory model is `assets/radlink/models/item/copper_panel.json`. These are standard Minecraft resource-pack JSON files. To use a custom block model, put its model JSON in `models/block/` and point the blockstate variant at it. To change how the placed block looks versus its inventory item, edit the blockstate and item model separately.
+
+For a simple cube, the three files can look like this:
+
+`assets/radlink/models/block/copper_panel.json`
+
+```json
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "radlink:block/copper_panel"
+  }
+}
+```
+
+`assets/radlink/blockstates/copper_panel.json`
+
+```json
+{
+  "variants": {
+    "": { "model": "radlink:block/copper_panel" }
+  }
+}
+```
+
+`assets/radlink/models/item/copper_panel.json`
+
+```json
+{
+  "parent": "radlink:block/copper_panel"
+}
+```
+
+The names in `blockstates` and model `parent` values are resource locations without `.json`; texture references also omit `.png`. Models exported from Blockbench must use the Minecraft Java block/item model format. Put the exported model JSON in `models/block/` (or `models/item/` for an item), put its PNG texture under `textures/`, and update the blockstate or item model to reference it.
+
+Set `"directional": true` for a block that faces north, south, east, or west when placed. Its default model uses these four textures (up and down both use the top texture):
+
+```
+assets/radlink/textures/block/copper_panel_front.png
+assets/radlink/textures/block/copper_panel_back.png
+assets/radlink/textures/block/copper_panel_side.png
+assets/radlink/textures/block/copper_panel_top.png
+```
+
+RadLink generates the matching cube model and horizontal-facing blockstate when those files are absent. If you provide your own model or blockstate, it must include the facing variants required by the directional block.
+
+### Custom potion effects
+
+Define effects in the root `radlink/effects.json` file. Each entry registers a potion effect identified as `radlink:<id>`:
+
+```json
+[
+  {
+    "id": "antidote_boost",
+    "name": "Antidote Boost",
+    "color": "#55CC88",
+    "isBad": false
+  }
+]
+```
+
+`color` is a hexadecimal color used by the effect, with or without a leading `#`; `isBad` selects the harmful (`true`) or beneficial (`false`) category. Add its visible name to `assets/radlink/lang/en_us.json` as `"effect.radlink.antidote_boost": "Antidote Boost"`. The effect can be applied by the script `effect` action with `"id": "radlink:antidote_boost"`. Definitions currently set the effect's category and color only; they do not let JSON add custom ticking, damage, or other effect behavior.
+
+### Names, textures, and reloading
+
+Names are supplied by Minecraft language files; the JSON `name` field is not a general-purpose display-name setting. Add translations to `assets/radlink/lang/en_us.json` (or another locale), for example:
+
+```json
+{
+  "item.radlink.copper_token": "Copper Token",
+  "block.radlink.copper_panel": "Copper Panel"
+}
+```
+
+For blocks, the translation key uses the block definition's `name` value; for items, it uses the item ID. Keep block `name` values simple (for example, `copper_panel`) so they are suitable for a translation key.
+
+All paths above are relative to the world's `radlink/` folder. Use PNG textures and lowercase file names. RadLink preserves existing model and blockstate files rather than regenerating them, so edit or remove a generated file if you want to replace its contents. New items and blocks are registered during game startup: restart Minecraft (and reconnect after the server's content-sync restart notice) after changing definitions. Resource-only changes can be reloaded with Minecraft's resource reload, but a full restart is the safest way to verify them. These files are included in multiplayer content synchronization.
 
 ## Custom armor (`items.json` or `armor_item.json`)
 
@@ -290,12 +426,12 @@ RadLink scripts are JSON arrays of script definitions. Each definition has:
 | `id` | `string` | Unique identifier for the script/item/block |
 | `name` | `string` | Display name |
 | `maxStackSize` | `int` | Maximum stack size (for items) |
-| `item_type` | `string` | Optional item behavior type. Use `"food"` to make the item edible; if omitted, it is a normal non-food item. |
+| `item_type` | `string` | Optional item behavior type. Use `"food"` to make the item edible or `"projectile"` to throw it; if omitted, it is a normal item. |
 | `nutrition` | `int` | Food hunger points restored; defaults to `4` for food items. |
 | `saturation` | `number` | Food saturation modifier; defaults to `0.3` for food items. |
 | `eat_duration` | `int` | Number of ticks required to eat the food; defaults to Minecraft's normal `32` ticks. Must be positive. |
 | `trigger` | `string` | Item interaction that starts the script; see the supported trigger list below |
-| `if` | `object` | **Main condition block**. Checked at the beginning of event processing. Determines whether the script runs at all. |
+| `if` | `object` | **Main condition block**. Checked at the beginning of event processing, or at projectile impact for projectile items. |
 | `then` | `array` or `object` | **Actions**. Executed if the `if` condition is met. |
 
 ### Item interaction triggers
@@ -346,7 +482,51 @@ Food items use Minecraft's normal eating behavior. Add `"item_type": "food"` to 
 }
 ```
 
-If `item_type` is absent, RadLink creates a regular non-food item; without a `trigger`, it has no scripted behavior. Any unknown non-empty `item_type` is rejected with an error rather than silently creating a different item.
+Projectile items use right-click to launch one copy of their own item stack using the snowball projectile entity and throw sound. One item is consumed per throw, except in creative mode. They do not inherit snowball's built-in damage; actions only run after impact, and entities are damaged only when a `damage` action explicitly targets them. For projectile items, `trigger: "right_click"` identifies the script to run at impact; the script does not run when the projectile is launched. The item icon/model uses the normal item-model files documented above; the JSON definition does not provide a separate projectile entity model or animation:
+
+```json
+{
+  "id": "test_projectile",
+  "name": "Test Projectile",
+  "maxStackSize": 64,
+  "item_type": "projectile",
+  "trigger": "right_click",
+  "if": {
+    "who": "any",
+    "any": { "==": "was_hit" }
+  },
+  "then": [
+    {
+      "case": [
+        {
+          "If": {
+            "was_hit": {
+              "who": "entity",
+              "entity": { "==": ["minecraft:zombie", "minecraft:skeleton"] }
+            }
+          },
+          "Then": { "damage": 5.0 }
+        },
+        {
+          "If": {
+            "was_hit": {
+              "who": "block",
+              "block": { "==": "minecraft:diamond_block" }
+            }
+          },
+          "Then": {
+            "say": { "text": "Hit a diamond block!" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+For a projectile's `if` and a nested `was_hit` condition, `who` accepts `"any"` (an entity or block), `"entity"`, or `"block"`. Add the matching `entity` or `block` selector to restrict the hit target. Selectors accept `"any"`, a resource ID such as `"minecraft:diamond_block"` / `"minecraft:blaze"`, an array of IDs, or an object using `==` / `!=`. The action context is the hit entity or block position, so `damage` affects only the entity actually hit.
+
+If `item_type` is absent, RadLink creates a regular item; without a `trigger`, it has no scripted behavior. Supported non-empty `item_type` values are `"food"` and `"projectile"`; any other value is rejected with an error rather than silently creating a different item.
 
 `right_click` does not include block/entity interactions: Forge has separate events for those, so use the corresponding trigger. A click trigger represents an interaction attempt, not necessarily a successful block break or entity attack.
 
@@ -376,6 +556,29 @@ Character case is crucial in JSON scripts!
 ## 5. Conditions (`if` / `If`)
 
 Conditions are checked inside `checkConditions()` (main `if`) and `checkNestedCondition()` (nested `If`).
+
+### Periodic world-time events
+
+Use `"who": "time"` with `timeCycles.every` in `global.json` to run a script every set number of in-game days. The first run happens when the world reaches that day count (day 25, then day 50, 75, and so on for an interval of 25). It runs once per matching day and is saved in `variables.json`, so repeated world ticks, dimensions, and server restarts do not repeat it that day.
+
+```json
+{
+  "if": {
+    "who": "time",
+    "timeCycles": {
+      "every": ["25", "days"]
+    }
+  },
+  "then": [
+    {
+      "say": "Warning! A sharp deterioration in air quality is expected in the next 24 hours. Wearing respiratory protection is recommended."
+    }
+  ]
+}
+```
+
+`every` must contain a positive whole number and the unit `"day"` or `"days"`. For other time conditions, the existing `timeCycles.now` form (for example `"isNewDay"`) remains available. The `say` action accepts either a plain string or the existing `{ "text": "..." }` object.
+
 ### `query` vs `calc` — What's the Difference?
 
 Both are used to check variable values, but they serve different purposes:
@@ -510,6 +713,7 @@ Actions are executed when conditions pass. They can be a single object or an arr
                 { "coordinates_2": [{ "~": "1" }, { "~": "-1" }, { "~": "1" }] }
             ],
             "block": "minecraft:diamond_block",
+            "harvestLevel": 2,
             "tests": [
                 { "isAir": false, "type": "destroy", "filter": "white_wool" }
             ]
@@ -519,6 +723,10 @@ Actions are executed when conditions pass. They can be a single object or an arr
 ```
 
 **Coordinate syntax:** `"~"` means current position; `{ "~": "-1" }` means current + offset.
+
+`harvestLevel` is optional and applies when `tests` sets `"type": "destroy"`: it selects the tool tier for drops (0 wooden, 1 stone, 2 iron, 3 diamond, 4 or higher netherite). If the block requires a better tool, it is not destroyed. Blocks that do not require a specific tool can still be destroyed at any tier, as in vanilla Minecraft. Without `harvestLevel`, the block is destroyed using the normal script behavior. `filter` may be a block ID to restrict affected blocks; `"no"`, `"none"`, or `"any"` means no block-ID filter. For projectile-hit scripts, use `was_hit` with `who: "block"` to run a block action only when the projectile hits a block.
+
+Minecraft block, item, and entity IDs may omit the namespace: `"dirt"` is treated as `"minecraft:dirt"`. IDs with an explicit namespace, such as `"modid:custom_block"`, are matched as written.
 
 **Fill `tests` fields:**
 * `isAir` — `true`/`false`, only modify blocks matching air condition

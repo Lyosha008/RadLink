@@ -3,6 +3,8 @@ package org.Lyosha008.radlink;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
@@ -24,10 +26,13 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -35,15 +40,20 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ScriptEngine {
+    private static final Logger LOGGER = LogManager.getLogger();
+    private static final Set<String> invalidTimeCyclesLogged = new HashSet<>();
     private static boolean isNewDayThisTick = false;
     private static long lastProcessedTick = -1;
     public static long rainStartTick = -1;
@@ -249,6 +259,32 @@ public class ScriptEngine {
 
         String who = ifObj.has("who") ? ifObj.get("who").getAsString() : "block";
 
+        if ("time".equalsIgnoreCase(who)) {
+            if (!Level.OVERWORLD.equals(level.dimension())) return;
+            if (!ifObj.has("timeCycles") || !ifObj.get("timeCycles").isJsonObject()) return;
+
+            JsonObject timeCycles = ifObj.getAsJsonObject("timeCycles");
+            if (timeCycles.has("every")) {
+                long intervalDays = parseEveryDays(timeCycles.get("every"), ifObj);
+                if (intervalDays <= 0) return;
+
+                long currentDay = level.getDayTime() / 24000L;
+                if (currentDay == 0 || currentDay % intervalDays != 0) return;
+
+                String variableKey = getTimeCycleVariableKey(script, ifObj);
+                Map<String, Object> variables = Radlink.loadWorldVariables();
+                if (parseLong(variables.get(variableKey), -1L) == currentDay) return;
+                if (!checkConditions(ifObj, null, level, null, null)) return;
+
+                variables.put(variableKey, (double) currentDay);
+                Radlink.saveWorldVariables(variables);
+                executeActions(script.thenActions(), level, null, null);
+            } else if (timeCycles.has("now") && checkConditions(ifObj, null, level, null, null)) {
+                executeActions(script.thenActions(), level, null, null);
+            }
+            return;
+        }
+
         if ("entity".equalsIgnoreCase(who)) {
             if (hasDeathCondition(ifObj)) return;
             for (Entity entity : level.getAllEntities()) {
@@ -315,10 +351,10 @@ public class ScriptEngine {
 
             if (itemElem.isJsonObject()) {
                 JsonObject itemObj = itemElem.getAsJsonObject();
-                if (itemObj.has("==") && !heldItemId.equalsIgnoreCase(itemObj.get("==").getAsString())) return false;
-                if (itemObj.has("!=") && heldItemId.equalsIgnoreCase(itemObj.get("!=").getAsString())) return false;
+                if (itemObj.has("==") && !matchesResourceSelector(itemObj.get("=="), heldItemId)) return false;
+                if (itemObj.has("!=") && matchesResourceSelector(itemObj.get("!="), heldItemId)) return false;
             } else if (itemElem.isJsonPrimitive()) {
-                if (!heldItemId.equalsIgnoreCase(itemElem.getAsString())) return false;
+                if (!matchesResourceId(itemElem.getAsString(), heldItemId)) return false;
             }
         }
 
@@ -333,6 +369,7 @@ public class ScriptEngine {
                 if (!evalComparison(calcValue, calcObj, level, pos, entity)) {
                     return false;
                 }
+
             }
         }
 
@@ -390,6 +427,153 @@ public class ScriptEngine {
         if (nestedIf != null) if (!checkNestedCondition(nestedIf, level, pos, entity)) return false;
 
         return true;
+    }
+
+    public static boolean checkProjectileHitCondition(
+        JsonObject condition,
+        ServerLevel level,
+        BlockPos pos,
+        Entity entity
+    ) {
+        if (condition == null) return true;
+
+        String who = condition.has("who") ? condition.get("who").getAsString() : "any";
+        boolean entityHit = entity != null;
+        if (!who.equalsIgnoreCase("any")
+            && !who.equalsIgnoreCase("entity") && !who.equalsIgnoreCase("block")) {
+            throw new IllegalArgumentException("Projectile hit 'who' must be any, block, or entity: " + who);
+        }
+        if (who.equalsIgnoreCase("entity") && !entityHit) return false;
+        if (who.equalsIgnoreCase("block") && entityHit) return false;
+
+        BlockState blockState = entityHit || pos == null ? null : level.getBlockState(pos);
+        String entityId = entityHit ? EntityType.getKey(entity.getType()).toString() : null;
+        String blockId = blockState == null ? null : BuiltInRegistries.BLOCK.getKey(blockState.getBlock()).toString();
+
+        JsonElement anySelector = condition.get("any");
+        if (anySelector != null && !isWasHitMarker(anySelector)
+            && !matchesSelector(anySelector, entityId, blockId)) {
+            return false;
+        }
+
+        JsonElement entitySelector = condition.get("entity");
+        JsonElement blockSelector = condition.get("block");
+        if (who.equalsIgnoreCase("entity")) {
+            if (entitySelector != null && !matchesSelector(entitySelector, entityId, null)) {
+                return false;
+            }
+        } else if (who.equalsIgnoreCase("block")) {
+            if (blockSelector != null && !matchesSelector(blockSelector, null, blockId)) {
+                return false;
+            }
+        } else if (entitySelector != null || blockSelector != null) {
+            boolean entityMatches = entityHit && entitySelector != null
+                && matchesSelector(entitySelector, entityId, null);
+            boolean blockMatches = !entityHit && blockSelector != null
+                && matchesSelector(blockSelector, null, blockId);
+            if (!entityMatches && !blockMatches) return false;
+        }
+
+        return checkConditions(condition, blockState, level, pos, entity);
+    }
+
+    private static boolean isWasHitMarker(JsonElement selector) {
+        return selector.isJsonObject()
+            && selector.getAsJsonObject().has("==")
+            && "was_hit".equalsIgnoreCase(selector.getAsJsonObject().get("==").getAsString());
+    }
+
+    private static boolean matchesSelector(
+        JsonElement selector,
+        String entityId,
+        String blockId
+    ) {
+        if (selector.isJsonArray()) {
+            for (JsonElement element : selector.getAsJsonArray()) {
+                if (matchesSelector(element, entityId, blockId)) return true;
+            }
+            return false;
+        }
+
+        if (selector.isJsonObject()) {
+            JsonObject comparison = selector.getAsJsonObject();
+            if (comparison.has("==")
+                && !matchesSelector(comparison.get("=="), entityId, blockId)) {
+                return false;
+            }
+            return !comparison.has("!=")
+                || !matchesSelector(comparison.get("!="), entityId, blockId);
+        }
+
+        if (!selector.isJsonPrimitive()) return false;
+        String expected = selector.getAsString();
+        if ("any".equalsIgnoreCase(expected)) return true;
+        return matchesId(expected, entityId) || matchesId(expected, blockId);
+    }
+
+    private static boolean matchesId(String expected, String actualId) {
+        return actualId != null && matchesResourceId(expected, actualId);
+    }
+
+    private static boolean matchesResourceId(String expected, String actualId) {
+        String normalized = expected.contains(":") ? expected : "minecraft:" + expected;
+        return actualId.equalsIgnoreCase(normalized);
+    }
+
+    private static boolean matchesResourceSelector(JsonElement selector, String actualId) {
+        if (selector.isJsonArray()) {
+            for (JsonElement element : selector.getAsJsonArray()) {
+                if (matchesResourceSelector(element, actualId)) return true;
+            }
+            return false;
+        }
+        if (selector.isJsonObject()) {
+            JsonObject comparison = selector.getAsJsonObject();
+            if (comparison.has("==") && !matchesResourceSelector(comparison.get("=="), actualId)) return false;
+            return !comparison.has("!=") || !matchesResourceSelector(comparison.get("!="), actualId);
+        }
+        return selector.isJsonPrimitive() && matchesResourceId(selector.getAsString(), actualId);
+    }
+
+    private static long parseEveryDays(JsonElement every, JsonObject ifObj) {
+        String signature = ifObj.toString();
+        if (!every.isJsonArray()) {
+            logInvalidTimeCycle(signature, ifObj);
+            return -1;
+        }
+
+        JsonArray values = every.getAsJsonArray();
+        if (values.size() != 2 || !values.get(0).isJsonPrimitive() || !values.get(1).isJsonPrimitive()) {
+            logInvalidTimeCycle(signature, ifObj);
+            return -1;
+        }
+
+        try {
+            long days = Long.parseLong(values.get(0).getAsString());
+            String unit = values.get(1).getAsString();
+            if (days <= 0 || !("day".equalsIgnoreCase(unit) || "days".equalsIgnoreCase(unit))) {
+                logInvalidTimeCycle(signature, ifObj);
+                return -1;
+            }
+            return days;
+        } catch (NumberFormatException exception) {
+            logInvalidTimeCycle(signature, ifObj);
+            return -1;
+        }
+    }
+
+    private static void logInvalidTimeCycle(String signature, JsonObject ifObj) {
+        if (invalidTimeCyclesLogged.add(signature)) {
+            LOGGER.warn("Ignoring invalid timeCycles.every in global script: {}", ifObj);
+        }
+    }
+
+    private static String getTimeCycleVariableKey(CustomDefinitions.CustomScriptDefinition script, JsonObject ifObj) {
+        String identity = script.id() == null || script.id().isBlank()
+            ? ifObj + "|" + script.thenActions()
+            : script.id();
+        String stableId = UUID.nameUUIDFromBytes(identity.getBytes(StandardCharsets.UTF_8)).toString();
+        return "global_time_cycle_" + stableId + "_last_day";
     }
 
     public static void executeActions(JsonElement thenElement, ServerLevel level, BlockPos pos) {
@@ -482,6 +666,14 @@ public class ScriptEngine {
             }
         }
 
+        if (thenObj.has("set") && thenObj.get("set").isJsonArray()) {
+            for (JsonElement setElement : thenObj.getAsJsonArray("set")) {
+                if (setElement.isJsonObject()) {
+                    executeSetBlockAction(setElement.getAsJsonObject(), level, pos, entity);
+                }
+            }
+        }
+
         if (thenObj.has("run")) executeActions(thenObj.get("run"), level, pos, entity);
 
         if (thenObj.has("command")) {
@@ -529,14 +721,22 @@ public class ScriptEngine {
         }
 
 
-        if (thenObj.has("say") && thenObj.get("say").isJsonObject()) {
-            JsonObject sayObj = thenObj.getAsJsonObject("say");
-            if (sayObj.has("text")) {
-                String rawText = sayObj.get("text").getAsString();
-                String formattedText = formatTextWithVariables(rawText, level, pos, entity);
+        if (thenObj.has("say")) {
+            JsonElement sayElement = thenObj.get("say");
+            String rawText = null;
+            if (sayElement.isJsonObject()) {
+                JsonObject sayObj = sayElement.getAsJsonObject();
+                if (sayObj.has("text") && sayObj.get("text").isJsonPrimitive()) {
+                    rawText = sayObj.get("text").getAsString();
+                }
+            } else if (sayElement.isJsonPrimitive() && sayElement.getAsJsonPrimitive().isString()) {
+                rawText = sayElement.getAsString();
+            }
 
+            if (rawText != null) {
+                String formattedText = formatTextWithVariables(rawText, level, pos, entity);
                 for (ServerPlayer player : level.players()) {
-                    player.sendSystemMessage(net.minecraft.network.chat.Component.literal(formattedText));
+                    player.sendSystemMessage(Component.literal(formattedText));
                 }
             }
         }
@@ -737,6 +937,10 @@ public class ScriptEngine {
         boolean isAirValue = false;
         String actionType = "replace";
         String filterBlockId = null;
+        Integer harvestLevel = setObj.has("harvestLevel") ? setObj.get("harvestLevel").getAsInt() : null;
+        if (harvestLevel != null && harvestLevel < 0) {
+            throw new IllegalArgumentException("harvestLevel must be zero or greater.");
+        }
 
         if (setObj.has("tests") && setObj.get("tests").isJsonArray()) {
             for (JsonElement tElem : setObj.getAsJsonArray("tests")) {
@@ -778,17 +982,38 @@ public class ScriptEngine {
 
                             if (checkAir && level.isEmptyBlock(currentPos) != isAirValue) continue;
 
-                            if (filterBlockId != null && !filterBlockId.isEmpty()) {
+                            if (filterBlockId != null && !filterBlockId.isEmpty()
+                                && !"no".equalsIgnoreCase(filterBlockId)
+                                && !"none".equalsIgnoreCase(filterBlockId)
+                                && !"any".equalsIgnoreCase(filterBlockId)) {
                                 ResourceLocation currentLoc = BuiltInRegistries.BLOCK.getKey(currentState.getBlock());
-                                String currentPath = currentLoc.getPath();
                                 String currentFull = currentLoc.toString();
 
-                                if (!currentFull.equalsIgnoreCase(filterBlockId) &&
-                                                                !currentPath.equalsIgnoreCase(filterBlockId)) continue;
+                                if (!matchesResourceId(filterBlockId, currentFull)) continue;
                             }
 
                             if ("destroy".equals(actionType)) {
-                                level.destroyBlock(currentPos, true);
+                                if (harvestLevel != null && currentState.getDestroySpeed(level, currentPos) < 0.0F) {
+                                    continue;
+                                }
+                                if (harvestLevel == null) {
+                                    level.destroyBlock(currentPos, true);
+                                } else {
+                                    ItemStack tool = new ItemStack(switch (Math.min(harvestLevel, 4)) {
+                                        case 0 -> Items.WOODEN_PICKAXE;
+                                        case 1 -> Items.STONE_PICKAXE;
+                                        case 2 -> Items.IRON_PICKAXE;
+                                        case 3 -> Items.DIAMOND_PICKAXE;
+                                        default -> Items.NETHERITE_PICKAXE;
+                                    });
+                                    if (currentState.requiresCorrectToolForDrops()
+                                        && !tool.isCorrectToolForDrops(currentState)) {
+                                        continue;
+                                    }
+                                    BlockEntity blockEntity = level.getBlockEntity(currentPos);
+                                    Block.dropResources(currentState, level, currentPos, blockEntity, entity, tool);
+                                    level.setBlock(currentPos, Blocks.AIR.defaultBlockState(), 3);
+                                }
                             } else if ("keep".equals(actionType)) {
                                 if (!level.isEmptyBlock(currentPos)) continue;
                             }
@@ -874,6 +1099,14 @@ public class ScriptEngine {
     }
 
     public static boolean checkNestedCondition(JsonObject varCheck,ServerLevel level,BlockPos pos,Entity entity){
+        if (varCheck.has("was_hit")) {
+            JsonElement hitCondition = varCheck.get("was_hit");
+            if (!hitCondition.isJsonObject()
+                || !checkProjectileHitCondition(hitCondition.getAsJsonObject(), level, pos, entity)) {
+                return false;
+            }
+        }
+
         if (varCheck.has("timeCycles") && varCheck.get("timeCycles").isJsonObject()) {
             JsonObject tc = varCheck.getAsJsonObject("timeCycles");
             if (tc.has("now") && "isNewDay".equalsIgnoreCase(tc.get("now").getAsString())) {
@@ -883,29 +1116,27 @@ public class ScriptEngine {
             }
         }
 
-        if (varCheck.has("entity")) {
+        boolean hasProjectileHitCondition = varCheck.has("was_hit");
+        if (!hasProjectileHitCondition && varCheck.has("entity")) {
             JsonElement entElem = varCheck.get("entity");
-            String actualEntityType = (entity != null) ? EntityType.getKey(entity.getType()).getPath() : "";
             String actualEntityFull = (entity != null) ? EntityType.getKey(entity.getType()).toString() : "";
 
             if (entElem.isJsonObject()) {
                 JsonObject entObj = entElem.getAsJsonObject();
                 if (entObj.has("==")) {
-                    String target = entObj.get("==").getAsString();
-                    if (!actualEntityType.equalsIgnoreCase(target) && !actualEntityFull.equalsIgnoreCase(target)) {
+                    if (!matchesResourceSelector(entObj.get("=="), actualEntityFull)) {
                         return false;
                     }
                 }
                 if (entObj.has("!=")) {
-                    String target = entObj.get("!=").getAsString();
-                    if (actualEntityType.equalsIgnoreCase(target) || actualEntityFull.equalsIgnoreCase(target)) {
+                    if (matchesResourceSelector(entObj.get("!="), actualEntityFull)) {
                         return false;
                     }
                 }
             }
         }
 
-        if (varCheck.has("block")) {
+        if (!hasProjectileHitCondition && varCheck.has("block")) {
             JsonElement blockElem = varCheck.get("block");
 
             if (blockElem.isJsonObject()) {
@@ -917,9 +1148,7 @@ public class ScriptEngine {
                 }
 
                 if (targetPos != null && level != null) {
-                    String expected = null;
-                    if (blockCheck.has("this")) expected = blockCheck.get("this").getAsString();
-                    else if (blockCheck.has("==")) expected = blockCheck.get("==").getAsString();
+                    JsonElement expected = blockCheck.has("this") ? blockCheck.get("this") : blockCheck.get("==");
 
                     if (expected != null) {
                         boolean isLightning = (entity != null && "lightning_bolt"
@@ -927,20 +1156,17 @@ public class ScriptEngine {
 
                         BlockState state = level.getBlockState(targetPos);
                         ResourceLocation loc = BuiltInRegistries.BLOCK.getKey(state.getBlock());
-                        boolean matches = loc.getPath().equalsIgnoreCase(expected) ||
-                                                                              loc.toString().equalsIgnoreCase(expected);
+                        boolean matches = matchesResourceSelector(expected, loc.toString());
 
                         if (!matches && isLightning) {
                             BlockState stateBelow = level.getBlockState(targetPos.below());
                             ResourceLocation locBelow = BuiltInRegistries.BLOCK.getKey(stateBelow.getBlock());
-                            matches = locBelow.getPath().equalsIgnoreCase(expected) ||
-                                                                         locBelow.toString().equalsIgnoreCase(expected);
+                            matches = matchesResourceSelector(expected, locBelow.toString());
 
                             if (!matches) {
                                 BlockState stateAbove = level.getBlockState(targetPos.above());
                                 ResourceLocation locAbove = BuiltInRegistries.BLOCK.getKey(stateAbove.getBlock());
-                                matches = locAbove.getPath().equalsIgnoreCase(expected) ||
-                                                                         locAbove.toString().equalsIgnoreCase(expected);
+                                matches = matchesResourceSelector(expected, locAbove.toString());
                             }
                         }
 
@@ -993,7 +1219,8 @@ public class ScriptEngine {
         for (Map.Entry<String, JsonElement> entry : varCheck.entrySet()) {
             String key = entry.getKey();
             if (key.equalsIgnoreCase("entity") || key.equalsIgnoreCase("timeCycles") || key.equalsIgnoreCase("query") ||
-                key.equalsIgnoreCase("block") || key.equalsIgnoreCase("var")
+                key.equalsIgnoreCase("block") || key.equalsIgnoreCase("was_hit") || key.equalsIgnoreCase("who") ||
+                key.equalsIgnoreCase("any") || key.equalsIgnoreCase("var")
                 || key.equals(">") || key.equals(">=") || key.equals("<") || key.equals("<=")
                 || key.equals("==") || key.equals("!=")) continue;
 

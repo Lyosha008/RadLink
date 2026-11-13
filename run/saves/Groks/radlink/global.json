@@ -280,5 +280,20 @@
         ]
       }
     ]
+  },
+  {
+    "if": {
+      "who": "time",
+      "timeCycles": {
+        "every": [
+          "25","days"
+        ]
+      }
+    },
+    "then": [
+      {
+        "say": "Warning! A sharp deterioration in air quality is expected in the next 24 hours. Wearing respiratory protection is recommended."
+      }
+    ]
   }
 ]

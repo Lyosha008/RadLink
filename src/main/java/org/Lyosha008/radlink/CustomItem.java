@@ -14,11 +14,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import java.util.List;
 
 public class CustomItem extends Item {
     private final String id;
     private final boolean food;
+    private final boolean projectile;
     private final Integer eatDuration;
     private final String trigger;
     private final JsonObject ifCondition;
@@ -28,6 +31,7 @@ public class CustomItem extends Item {
         String id,
         Item.Properties properties,
         boolean food,
+        boolean projectile,
         Integer eatDuration,
         String trigger,
         JsonObject ifCondition,
@@ -36,6 +40,7 @@ public class CustomItem extends Item {
         super(properties);
         this.id = id;
         this.food = food;
+        this.projectile = projectile;
         this.eatDuration = eatDuration;
         this.trigger = trigger;
         this.ifCondition = ifCondition;
@@ -58,7 +63,30 @@ public class CustomItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack itemStack = player.getItemInHand(hand);
-        if (food || trigger == null || !"right_click".equalsIgnoreCase(trigger.trim())) {
+        if (food) {
+            return super.use(level, player, hand);
+        }
+
+        if (projectile) {
+            if (level instanceof ServerLevel serverLevel) {
+                CustomProjectile snowball = new CustomProjectile(serverLevel, player);
+                ItemStack projectileStack = itemStack.copy();
+                projectileStack.setCount(1);
+                snowball.setItem(projectileStack);
+                snowball.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 1.5F, 1.0F);
+                serverLevel.addFreshEntity(snowball);
+                serverLevel.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.SNOWBALL_THROW, SoundSource.NEUTRAL, 0.5F,
+                    0.4F / player.getRandom().nextFloat() + 0.8F);
+
+                if (!player.getAbilities().instabuild) {
+                    itemStack.shrink(1);
+                }
+            }
+            return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
+        }
+
+        if (trigger == null || !"right_click".equalsIgnoreCase(trigger.trim())) {
             return super.use(level, player, hand);
         }
 
@@ -77,6 +105,10 @@ public class CustomItem extends Item {
 
     public boolean matchesTriggerCondition(Player player) {
         return ifCondition == null || !ifCondition.has("player") || matchesCondition(player, ifCondition);
+    }
+
+    public boolean isProjectile() {
+        return projectile;
     }
 
     private static boolean matchesCondition(Player player, JsonObject condition) {
